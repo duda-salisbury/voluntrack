@@ -4,6 +4,9 @@
     </td>
     <td>
         {{ $entry->name ?: 'Anonymous' }}
+        @if($entry->volunteer_user_id)
+            <span class="badge bg-primary ms-1" title="Registered volunteer account">Account</span>
+        @endif
     </td>
     <td>
         {{ $entry->location->name }}

@@ -13,22 +13,36 @@ class EntryController extends Controller
 {
     public function create(): View
     {
-        $locations = Location::orderBy('name')->get();
+        $orgId     = auth()->user()->organization_id;
+        $locations = Location::orderBy('name')
+            ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
+            ->get();
+
         return view('admin.entries.create', compact('locations'));
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $orgId        = auth()->user()->organization_id;
+        $locationRule = $orgId
+            ? "required|exists:locations,id,organization_id,{$orgId}"
+            : 'required|exists:locations,id';
+
         $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'location_id' => 'required|exists:locations,id',
+            'name'           => 'nullable|string|max:255',
+            'location_id'    => $locationRule,
             'volunteered_at' => 'required|date',
-            'hours' => 'required|numeric|min:0.01|max:24',
-            'is_matched' => 'boolean',
-            'notes' => 'nullable|string',
+            'hours'          => 'required|numeric|min:0.01|max:24',
+            'is_matched'     => 'boolean',
+            'notes'          => 'nullable|string',
         ]);
 
         $validated['source'] = 'admin';
+
+        if ($orgId !== null) {
+            $validated['organization_id'] = $orgId;
+        }
+
         if ($validated['is_matched'] ?? false) {
             $validated['matched_by_admin_id'] = auth()->id();
         }
@@ -41,7 +55,11 @@ class EntryController extends Controller
 
     public function edit(VolunteerEntry $entry): View
     {
-        $locations = Location::orderBy('name')->get();
+        $orgId     = auth()->user()->organization_id;
+        $locations = Location::orderBy('name')
+            ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
+            ->get();
+
         return view('admin.entries.edit', compact('entry', 'locations'));
     }
 

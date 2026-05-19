@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
 class VolunteerEntry extends Model
 {
     protected $fillable = [
+        'organization_id',
+        'volunteer_user_id',
         'name',
         'location_id',
         'volunteered_at',
@@ -24,6 +27,19 @@ class VolunteerEntry extends Model
         'hours' => 'decimal:2',
         'is_matched' => 'boolean',
     ];
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * The registered volunteer account that submitted this entry, if any.
+     */
+    public function volunteerUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'volunteer_user_id');
+    }
 
     /**
      * Get the location for this volunteer entry.
@@ -55,6 +71,14 @@ class VolunteerEntry extends Model
     public function scopeUnmatched(Builder $query): Builder
     {
         return $query->where('is_matched', false);
+    }
+
+    /**
+     * Scope to get entries submitted by a specific volunteer account.
+     */
+    public function scopeByVolunteerUser(Builder $query, int $userId): Builder
+    {
+        return $query->where('volunteer_user_id', $userId);
     }
 
     /**

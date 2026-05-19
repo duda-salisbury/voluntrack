@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
+
+        // Runs after SubstituteBindings so route model binding is complete.
+        // Shares $org with every Blade view rendered during the request.
+        $middleware->appendToGroup('web', \App\Http\Middleware\ShareOrganizationWithViews::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

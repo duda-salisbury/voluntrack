@@ -15,15 +15,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seed locations first
+        // 1. Create the default organization
+        $this->call(OrganizationSeeder::class);
+
+        // 2. Seed locations (attached to default org via OrganizationSeeder back-fill,
+        //    or pass the org to LocationSeeder directly for a fresh install)
         $this->call(LocationSeeder::class);
 
-        // Create admin user
+        // 3. Create admin user
         User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@voluntrack.test',
+            'name'     => 'Admin',
+            'email'    => 'admin@voluntrack.test',
             'password' => bcrypt('password'),
             'is_admin' => true,
         ]);
+
+        // 4. Back-fill: ensure all data is associated with the default org
+        $this->call(OrganizationSeeder::class);
     }
 }

@@ -7,15 +7,29 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Admin Dashboard</h1>
-            <p class="text-muted mb-0">Manage volunteer hour entries</p>
+            <p class="text-muted mb-0">
+                Manage volunteer hour entries
+                @if(isset($org) && $org)
+                    &nbsp;·&nbsp;<span class="fw-semibold">{{ $org->name }}</span>
+                @endif
+            </p>
         </div>
-        <div class="d-flex gap-3">
+        <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('admin.entries.create') }}" class="btn btn-primary">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
                 Add Entry
             </a>
+            {{-- Org-admin: quick access to their branding --}}
+            @if(isset($org) && $org)
+                <a href="{{ route('admin.branding.edit') }}" class="btn btn-outline-secondary">Branding</a>
+                <a href="{{ route('admin.locations.index') }}" class="btn btn-outline-secondary">Locations</a>
+            @endif
+            {{-- Super-admin: manage all orgs --}}
+            @if(auth()->user()->isSuperAdmin())
+                <a href="{{ route('admin.organizations.index') }}" class="btn btn-outline-secondary">Organizations</a>
+            @endif
             <form method="POST" action="{{ route('logout') }}" class="m-0">
                 @csrf
                 <button type="submit" class="btn btn-secondary">Logout</button>
