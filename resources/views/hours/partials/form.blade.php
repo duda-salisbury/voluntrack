@@ -44,6 +44,12 @@
             novalidate
         >
             @csrf
+            {{-- Anonymous continuity token: client-generated UUID stored in localStorage.
+                 Never contains personal data. Lets us estimate unique anonymous volunteers.
+                 Omitted entirely for signed-in users (cleared server-side if present). --}}
+            @if(! $volunteerUser)
+            <input type="hidden" name="anon_token" id="anon_token">
+            @endif
 
             <!-- Location Field -->
             <div class="mb-3">

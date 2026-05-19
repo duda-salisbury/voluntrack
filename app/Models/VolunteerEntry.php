@@ -12,6 +12,7 @@ class VolunteerEntry extends Model
     protected $fillable = [
         'organization_id',
         'volunteer_user_id',
+        'anon_token',
         'name',
         'location_id',
         'volunteered_at',

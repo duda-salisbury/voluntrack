@@ -40,6 +40,8 @@ class VolunteerHourController extends Controller
             'location_id'    => "required|exists:locations,id,organization_id,{$org->id}",
             'volunteered_at' => 'required|date|before_or_equal:today',
             'hours'          => 'required|numeric|min:0.01|max:24',
+            // Anonymous continuity token — client-generated UUID, never required
+            'anon_token'     => 'nullable|uuid',
         ];
 
         if ($config->showNotes) {
@@ -68,6 +70,8 @@ class VolunteerHourController extends Controller
             if (empty($validated['name'])) {
                 $validated['name'] = auth()->user()->name;
             }
+            // Registered users don't need the anonymous token
+            unset($validated['anon_token']);
         }
 
         $entry = VolunteerEntry::create($validated);

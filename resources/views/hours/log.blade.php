@@ -35,3 +35,47 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+{{--
+    Anonymous continuity token
+    ──────────────────────────
+    Generates a random UUID once and stores it in localStorage under 'vt_anon'.
+    The token is injected into the hidden #anon_token field before every submission
+    (including HTMX re-renders that replace the form in-place).
+
+    Privacy notes:
+    • Pure random UUID — no personal data, no device fingerprinting.
+    • First-party only: never shared with third parties.
+    • Scoped to this domain's localStorage; cleared with "Clear site data".
+    • Logged-in volunteers don't send the token (field is absent from their form).
+--}}
+<script>
+(function () {
+    var KEY   = 'vt_anon';
+    var token = localStorage.getItem(KEY);
+
+    if (!token) {
+        // crypto.randomUUID() — available in all modern browsers (Chrome 92+, FF 95+, Safari 15.4+)
+        token = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+            ? crypto.randomUUID()
+            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                var r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+              });
+        localStorage.setItem(KEY, token);
+    }
+
+    function applyToken() {
+        var el = document.getElementById('anon_token');
+        if (el) { el.value = token; }
+    }
+
+    // Set on initial page load
+    applyToken();
+
+    // Re-set after every HTMX swap (the form partial is replaced in-place)
+    document.addEventListener('htmx:afterSwap', applyToken);
+}());
+</script>
+@endpush
