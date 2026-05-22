@@ -67,6 +67,17 @@
                 @auth
                     @if(auth()->user()->is_admin)
                         <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-outline-primary">Admin</a>
+                    @elseif(isset($org) && $org && auth()->user()->organization_id === $org->id)
+                        <a href="{{ route('org.account.history', $org) }}" class="btn btn-sm btn-outline-secondary">My History</a>
+                        <form method="POST" action="{{ route('org.account.logout', $org) }}" class="m-0">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Sign Out</button>
+                        </form>
+                    @endif
+                @else
+                    @if(isset($org) && $org)
+                        <a href="{{ route('org.account.login', $org) }}" class="btn btn-sm btn-outline-primary">Sign In</a>
+                        <a href="{{ route('org.account.register', $org) }}" class="btn btn-sm btn-primary">Register</a>
                     @endif
                 @endauth
                 @stack('header-actions')

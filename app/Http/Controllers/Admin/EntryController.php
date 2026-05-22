@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Location;
+use App\Models\Organization;
+use App\Models\User;
 use App\Models\VolunteerEntry;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,35 +15,59 @@ class EntryController extends Controller
 {
     public function create(): View
     {
-        $orgId     = auth()->user()->organization_id;
+        $user      = auth()->user();
+        $orgId     = $user->organization_id;
         $locations = Location::orderBy('name')
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
             ->get();
 
-        return view('admin.entries.create', compact('locations'));
+        $organizations = $user->isSuperAdmin()
+            ? Organization::orderBy('name')->get(['id', 'name', 'slug'])
+            : collect();
+
+        // For org-admins scope volunteers to their org; for superadmin all volunteers are
+        // passed as JSON grouped by org and filtered client-side
+        $volunteers = $user->isSuperAdmin()
+            ? User::where('is_admin', false)->orderBy('name')->get(['id', 'name', 'email', 'organization_id'])
+            : User::where('is_admin', false)->where('organization_id', $orgId)->orderBy('name')->get(['id', 'name', 'email', 'organization_id']);
+
+        $locationsJson  = $locations->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'org' => $l->organization_id])->values();
+        $volunteersJson = $volunteers->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'email' => $v->email, 'org' => $v->organization_id])->values();
+
+        return view('admin.entries.create', compact('locations', 'organizations', 'volunteers', 'locationsJson', 'volunteersJson'));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $orgId        = auth()->user()->organization_id;
-        $locationRule = $orgId
-            ? "required|exists:locations,id,organization_id,{$orgId}"
-            : 'required|exists:locations,id';
+        $user         = auth()->user();
+        $orgId        = $user->organization_id;
+
+        // Superadmin picks org from the form
+        if ($user->isSuperAdmin()) {
+            $request->validate(['organization_id' => 'required|exists:organizations,id']);
+            $orgId = $request->input('organization_id');
+        }
+
+        $locationRule = "required|exists:locations,id,organization_id,{$orgId}";
 
         $validated = $request->validate([
-            'name'           => 'nullable|string|max:255',
-            'location_id'    => $locationRule,
-            'volunteered_at' => 'required|date',
-            'hours'          => 'required|numeric|min:0.01|max:24',
-            'is_matched'     => 'boolean',
-            'notes'          => 'nullable|string',
+            'name'               => 'nullable|string|max:255',
+            'volunteer_user_id'  => 'nullable|exists:users,id',
+            'location_id'        => $locationRule,
+            'volunteered_at'     => 'required|date',
+            'hours'              => 'required|numeric|min:0.01|max:24',
+            'is_matched'         => 'boolean',
+            'notes'              => 'nullable|string',
         ]);
 
-        $validated['source'] = 'admin';
-
-        if ($orgId !== null) {
-            $validated['organization_id'] = $orgId;
+        // If a registered volunteer was selected, use their name if none provided
+        if (!empty($validated['volunteer_user_id']) && empty($validated['name'])) {
+            $volunteerUser = User::find($validated['volunteer_user_id']);
+            if ($volunteerUser) $validated['name'] = $volunteerUser->name;
         }
+
+        $validated['source']          = 'admin';
+        $validated['organization_id'] = $orgId;
 
         if ($validated['is_matched'] ?? false) {
             $validated['matched_by_admin_id'] = auth()->id();
@@ -97,6 +123,33 @@ class EntryController extends Controller
 
         return redirect()->route('admin.dashboard')
             ->with('success', 'Entry deleted successfully.');
+    }
+
+    public function updateInline(Request $request, VolunteerEntry $entry)
+    {
+        $field = $request->input('field');
+
+        match ($field) {
+            'hours' => (function () use ($request, $entry) {
+                $request->validate(['value' => 'required|numeric|min:0.01|max:24']);
+                $entry->update(['hours' => $request->input('value')]);
+            })(),
+            'is_matched' => (function () use ($request, $entry) {
+                $val = filter_var($request->input('value'), FILTER_VALIDATE_BOOLEAN);
+                $entry->is_matched = $val;
+                $entry->matched_by_admin_id = $val ? auth()->id() : null;
+                $entry->save();
+            })(),
+            'notes' => (function () use ($request, $entry) {
+                $request->validate(['value' => 'nullable|string|max:2000']);
+                $entry->update(['notes' => $request->input('value')]);
+            })(),
+            default => abort(422, 'Unknown field'),
+        };
+
+        $entry->load(['location', 'matchedByAdmin', 'organization']);
+        return response(view('admin.partials.entry-row', ['entry' => $entry, 'justSaved' => true]))
+            ->header('HX-Trigger', 'statsUpdated');
     }
 
     public function toggleMatch(Request $request, VolunteerEntry $entry)

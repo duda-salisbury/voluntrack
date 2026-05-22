@@ -69,7 +69,7 @@
                         Sign In
                     </button>
                     
-                    <a href="{{ route('hours.index') }}" class="btn btn-secondary">
+                    <a href="{{ route('home') }}" class="btn btn-secondary">
                         Back to Public Form
                     </a>
                 </div>

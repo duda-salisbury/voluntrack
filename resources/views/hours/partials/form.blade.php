@@ -7,8 +7,8 @@
     <div class="card-body">
         <form 
             method="POST" 
-            action="{{ route('hours.store') }}"
-            hx-post="{{ route('hours.store') }}"
+            action="{{ route('org.hours.store', $org) }}"
+            hx-post="{{ route('org.hours.store', $org) }}"
             hx-target="#form-container"
             hx-swap="innerHTML"
             novalidate
@@ -101,7 +101,7 @@
                     name="name" 
                     id="name" 
                     class="form-control @error('name') is-invalid @enderror"
-                    value="{{ old('name') }}"
+                    value="{{ old('name', (auth()->check() && auth()->user()->organization_id === $org->id) ? auth()->user()->name : null) }}"
                     maxlength="255"
                     placeholder="Anonymous volunteer"
                     aria-describedby="nameHelp"
@@ -112,6 +112,26 @@
                     <div class="form-text" id="nameHelp">Leave blank to log hours anonymously</div>
                 @enderror
             </div>
+
+            @if($org->config->showNotes)
+            <!-- Notes Field -->
+            <div class="mb-3">
+                <label for="notes" class="form-label fw-semibold">
+                    Notes <span class="text-muted fw-normal">(optional)</span>
+                </label>
+                <textarea
+                    name="notes"
+                    id="notes"
+                    class="form-control @error('notes') is-invalid @enderror"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="Any additional details about your volunteer work..."
+                >{{ old('notes') }}</textarea>
+                @error('notes')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            @endif
 
             <!-- Submit Button -->
             <div class="d-grid">

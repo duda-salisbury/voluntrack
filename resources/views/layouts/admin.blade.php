@@ -192,6 +192,30 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/htmx.org@2.0.0/dist/htmx.min.js"></script>
+<script>
+    // Send Laravel CSRF token with every HTMX request
+    document.addEventListener('htmx:configRequest', function (e) {
+        e.detail.headers['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.content
+            || '{{ csrf_token() }}';
+    });
+
+    // Flash a green highlight on a table row after an inline save
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        var el = e.detail.target;
+        if (el && el.tagName === 'TR') {
+            el.classList.add('row-saved-flash');
+            setTimeout(function () { el.classList.remove('row-saved-flash'); }, 1800);
+        }
+    });
+</script>
+<style>
+    @keyframes row-saved {
+        0%   { background-color: transparent; }
+        20%  { background-color: #d1e7dd; }
+        100% { background-color: transparent; }
+    }
+    .row-saved-flash { animation: row-saved 1.8s ease; }
+</style>
 @stack('scripts')
 </body>
 </html>

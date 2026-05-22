@@ -71,7 +71,7 @@
                             value="{{ old('hours', $entry->hours) }}"
                             min="0.01"
                             max="24"
-                            step="0.25"
+                            step="any"
                             required
                         >
                         @error('hours')

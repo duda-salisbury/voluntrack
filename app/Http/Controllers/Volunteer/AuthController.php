@@ -105,6 +105,15 @@ class AuthController extends Controller
                 ])->onlyInput('email');
             }
 
+            // Block volunteers from logging in via a different org's form.
+            if ($user->organization_id !== $org->id) {
+                Auth::logout();
+
+                return back()->withErrors([
+                    'email' => 'No account found for this organization with those credentials.',
+                ])->onlyInput('email');
+            }
+
             return redirect()->route('org.hours.index', $org)
                 ->with('success', "Welcome back, {$user->name}!");
         }

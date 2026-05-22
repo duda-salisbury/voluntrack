@@ -21,7 +21,7 @@
         
         <!-- Actions -->
         <div class="d-grid gap-3" style="max-width: 400px; margin: 0 auto;">
-            <a href="{{ route('hours.index') }}" class="btn btn-primary btn-lg">
+            <a href="{{ route('org.hours.index', $org) }}" class="btn btn-primary btn-lg">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>

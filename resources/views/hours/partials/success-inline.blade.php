@@ -25,7 +25,7 @@
             <button
                 type="button"
                 class="btn btn-primary"
-                hx-get="{{ route('hours.index') }}"
+                hx-get="{{ route('org.hours.index', $org) }}"
                 hx-target="#form-container"
                 hx-swap="innerHTML"
             >

@@ -67,8 +67,12 @@ class VolunteerHourController extends Controller
         $validated['source']          = 'manual';
         $validated['organization_id'] = $org->id;
 
-        // Link to volunteer account if one is logged in
-        if (auth()->check() && auth()->user()->isVolunteer()) {
+        // Link to volunteer account only if logged in AND belongs to this org
+        $isOrgVolunteer = auth()->check()
+            && auth()->user()->isVolunteer()
+            && (int) auth()->user()->organization_id === (int) $org->id;
+
+        if ($isOrgVolunteer) {
             $validated['volunteer_user_id'] = auth()->id();
             if (empty($validated['name'])) {
                 $validated['name'] = auth()->user()->name;
