@@ -38,10 +38,8 @@ class OrganizationSeeder extends Seeder
         // Back-fill existing volunteer entries that have no org yet
         VolunteerEntry::whereNull('organization_id')->update(['organization_id' => $org->id]);
 
-        // Attach the admin user to this org if they have no org yet
-        User::where('is_admin', true)
-            ->whereNull('organization_id')
-            ->update(['organization_id' => $org->id]);
+        // Do NOT touch admin users here — super-admins have organization_id = null
+        // intentionally, and org-admins are assigned explicitly when creating orgs.
 
         $this->command->info("Default organization \"{$org->name}\" (slug: {$org->slug}) ready.");
     }

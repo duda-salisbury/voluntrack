@@ -16,6 +16,8 @@ class VolunteerHourController extends Controller
      */
     public function index(Organization $org, Request $request): View
     {
+        abort_if(! $org->is_active, 404);
+
         $locations = Location::where('organization_id', $org->id)
             ->active()
             ->orderBy('name')
@@ -33,6 +35,7 @@ class VolunteerHourController extends Controller
      */
     public function store(Organization $org, Request $request): View|RedirectResponse
     {
+        abort_if(! $org->is_active, 404);
         $config = $org->config;
 
         $rules = [

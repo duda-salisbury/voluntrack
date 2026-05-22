@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Admin\BrandingController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EntryController;
 use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\LoginController;
 use App\Http\Controllers\Admin\OrganizationController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Volunteer\AuthController as VolunteerAuthController;
 use App\Http\Controllers\Volunteer\ForgotPasswordController;
 use App\Http\Controllers\Volunteer\HistoryController as VolunteerHistoryController;
@@ -17,15 +19,7 @@ use Illuminate\Support\Facades\Route;
 // ---------------------------------------------------------------------------
 // Root: redirect to the first active organization's public form
 // ---------------------------------------------------------------------------
-Route::get('/', function () {
-    $org = Organization::where('is_active', true)->orderBy('id')->first();
-
-    if ($org) {
-        return redirect()->route('org.hours.index', $org);
-    }
-
-    abort(503, 'No active organizations are available.');
-})->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 // ---------------------------------------------------------------------------
 // Admin authentication (defined before the {org:slug} catch-all to prevent
@@ -56,9 +50,12 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
         ->name('locations.toggle-active');
 
     // Organizations (super-admin only)
-    Route::resource('organizations', OrganizationController::class)->except(['show', 'destroy']);
+    Route::resource('organizations', OrganizationController::class)->except(['show']);
     Route::patch('organizations/{organization}/toggle-active', [OrganizationController::class, 'toggleActive'])
         ->name('organizations.toggle-active');
+
+    // Users
+    Route::resource('users', UserController::class)->except(['show']);
 });
 
 // ---------------------------------------------------------------------------

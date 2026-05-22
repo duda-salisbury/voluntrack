@@ -139,6 +139,21 @@ class OrganizationController extends Controller
             ->with('success', "Organization \"{$organization->name}\" updated successfully.");
     }
 
+    public function destroy(Organization $organization): RedirectResponse
+    {
+        $this->requireSuperAdmin();
+
+        if ($organization->logo_path) {
+            Storage::disk('public')->delete($organization->logo_path);
+        }
+
+        $name = $organization->name;
+        $organization->delete();
+
+        return redirect()->route('admin.organizations.index')
+            ->with('success', "\"{$name}\" has been deleted.");
+    }
+
     public function toggleActive(Organization $organization): RedirectResponse
     {
         $this->requireSuperAdmin();

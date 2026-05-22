@@ -29,6 +29,8 @@ class AuthController extends Controller
 
     public function showRegister(Organization $org): View|RedirectResponse
     {
+        abort_if(! $org->is_active, 404);
+
         if ($this->volunteerIsLoggedIn()) {
             return redirect()->route('org.hours.index', $org);
         }
@@ -38,6 +40,8 @@ class AuthController extends Controller
 
     public function register(Organization $org, Request $request): RedirectResponse
     {
+        abort_if(! $org->is_active, 404);
+
         if ($this->volunteerIsLoggedIn()) {
             return redirect()->route('org.hours.index', $org);
         }

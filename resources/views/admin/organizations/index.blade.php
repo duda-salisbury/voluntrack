@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Organizations')
 
@@ -73,6 +73,13 @@
                                         class="btn btn-sm {{ $organization->is_active ? 'btn-outline-warning' : 'btn-outline-success' }}"
                                         onclick="return confirm('{{ $organization->is_active ? 'Deactivate' : 'Activate' }} this organization?')"
                                     >{{ $organization->is_active ? 'Deactivate' : 'Activate' }}</button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.organizations.destroy', $organization) }}" class="m-0">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                        class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Permanently delete \"{{ addslashes($organization->name) }}\"? This cannot be undone.')"
+                                    >Delete</button>
                                 </form>
                             </div>
                         </td>

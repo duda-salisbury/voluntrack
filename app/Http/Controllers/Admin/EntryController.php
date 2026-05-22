@@ -88,6 +88,11 @@ class EntryController extends Controller
 
     public function destroy(VolunteerEntry $entry): RedirectResponse
     {
+        $user = auth()->user();
+        if (! $user->isSuperAdmin()) {
+            abort_if($entry->organization_id !== $user->organization_id, 403);
+        }
+
         $entry->delete();
 
         return redirect()->route('admin.dashboard')

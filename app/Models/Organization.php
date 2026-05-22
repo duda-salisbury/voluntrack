@@ -6,10 +6,13 @@ use App\Support\OrganizationSettings;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class Organization extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'name',
         'slug',
@@ -32,16 +35,6 @@ class Organization extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
-    }
-
-    /**
-     * Only active organizations resolve from public routes.
-     * Visiting an inactive org's URL returns a 404 automatically.
-     */
-    public function resolveRouteBindingQuery($query, $value, $field = null)
-    {
-        return parent::resolveRouteBindingQuery($query, $value, $field)
-            ->where('is_active', true);
     }
 
     // -------------------------------------------------------------------------

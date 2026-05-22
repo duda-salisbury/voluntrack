@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Models\Organization;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class VolunteerEntry extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'organization_id',
         'volunteer_user_id',
