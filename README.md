@@ -27,6 +27,20 @@ Invitation mail is sent synchronously; no queue worker is needed for it.
 If environment configuration is cached, rebuild it after changing mail settings.
 Log in at `/login` with an existing platform administrator account.
 
+### Create a platform administrator
+
+After running migrations:
+
+```bash
+php artisan createAdmin
+```
+
+Enter the administrator's name, email, and a password of at least eight
+characters, then confirm the password. Password input is hidden and is hashed
+before storage. The command creates a platform administrator with no organization
+assignment; it never overwrites or promotes an existing account. Sign in at
+`/login`, then invite organization administrators from the organization overview.
+
 ### Resend email delivery
 
 The Resend PHP SDK is installed and Laravel's native `resend` transport is used
