@@ -41,6 +41,27 @@ before storage. The command creates a platform administrator with no organizatio
 assignment; it never overwrites or promotes an existing account. Sign in at
 `/login`, then invite organization administrators from the organization overview.
 
+For Laravel Cloud's non-interactive remote command runner:
+
+```bash
+php artisan createAdmin --name="Platform Admin" --email="admin@example.com" --no-interaction
+```
+
+Both options are required with `--no-interaction`; missing or invalid values
+produce an error and a nonzero exit code, without prompting. This mode generates
+an unknown random password and sends a secure, expiring, single-use
+password-setup link using Laravel's existing password broker and configured
+mailer (Resend in production). No password is passed on the command line.
+Locally, `--name` and `--email` can also prefill those values while retaining
+the hidden password and confirmation prompts.
+
+Configure mail delivery and the public HTTPS `APP_URL` before using remote
+creation. Existing accounts, including archived accounts, are rejected without
+changing their password or privileges. If email delivery fails after creation,
+the command fails explicitly but preserves the created account; correct the mail
+configuration and request a fresh link at `/account/password/forgot`, rather
+than rerunning account creation. A log/array mailer does not deliver real email.
+
 ### Resend email delivery
 
 The Resend PHP SDK is installed and Laravel's native `resend` transport is used
