@@ -20,6 +20,10 @@ class AdminMiddleware
                 ->with('error', 'You must be an administrator to access this area.');
         }
 
+        if (auth()->user()->organization_id !== null) {
+            abort_unless(auth()->user()->organization?->is_active, 403, 'Your organization is inactive. Contact the platform administrator.');
+        }
+
         return $next($request);
     }
 }

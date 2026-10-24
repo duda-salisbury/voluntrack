@@ -36,10 +36,10 @@
                         class="form-control font-monospace @error('slug') is-invalid @enderror"
                         value="{{ old('slug', $organization->slug ?? '') }}"
                         required maxlength="100"
-                        pattern="[A-Za-z0-9_-]+"
+                        pattern="[a-z0-9]+((_|-)[a-z0-9]+)*"
                         placeholder="my-org">
                 </div>
-                <div class="form-text">Letters, numbers, hyphens and underscores only. Cannot be changed lightly — it's the public URL.</div>
+                <div class="form-text">Lowercase letters, numbers, hyphens and underscores. Your public link ends in /log-hours. Changing this breaks existing shared links.</div>
                 @error('slug') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
             </div>
 
@@ -60,6 +60,7 @@
             <div class="col-12 col-md-4">
                 <label class="form-label d-block">Status</label>
                 <div class="form-check form-switch mt-2">
+                    <input type="hidden" name="is_active" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                         name="is_active" id="is_active" value="1"
                         {{ old('is_active', $organization->is_active ?? true) ? 'checked' : '' }}>
@@ -82,8 +83,8 @@
                 @endif
                 <input type="file" name="logo" id="logo"
                     class="form-control @error('logo') is-invalid @enderror"
-                    accept="image/jpeg,image/png,image/webp,image/svg+xml">
-                <div class="form-text">JPG, PNG, WebP or SVG · max 2 MB</div>
+                    accept="image/jpeg,image/png,image/webp">
+                <div class="form-text">JPG, PNG or WebP · max 2 MB</div>
                 @error('logo') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
         </div>
@@ -169,6 +170,7 @@
             ['show_hours_hint', $cfg->showHoursHint,  'Show hours hint',      'Displays the decimal format hint below the hours field.'],
         ] as [$field, $value, $label, $hint])
         <div class="form-check form-switch mb-3">
+            <input type="hidden" name="{{ $field }}" value="0">
             <input class="form-check-input" type="checkbox" role="switch"
                 name="{{ $field }}" id="{{ $field }}" value="1"
                 {{ old($field, $value) ? 'checked' : '' }}>

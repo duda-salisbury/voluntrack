@@ -1,4 +1,158 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Voluntrack
+
+Organization-scoped volunteer-hours tracking with Blade, Bootstrap 5, and HTMX.
+The repository currently targets **Laravel 13 and PHP 8.3+** (see
+[composer.json](composer.json)); the UX improvements do not change framework
+versions or introduce a frontend framework.
+
+## Run the updated application
+
+With the existing dependencies installed:
+
+```bash
+php artisan migrate
+php artisan storage:link
+npm run build
+```
+
+The new migration adds `special_events` and a nullable `special_event_id` on
+volunteer entries. Existing hours, locations, accounts, and organization settings
+are retained. Back up your database before production migrations as usual.
+Do not use `migrate:fresh` against existing data.
+
+Set `APP_URL` to the public HTTPS origin. Configure a working Laravel mail
+transport and `MAIL_FROM_ADDRESS` before sending invitations or password-reset
+emails. A `log` or `array` mailer does **not** deliver email to recipients.
+Invitation mail is sent synchronously; no queue worker is needed for it.
+If environment configuration is cached, rebuild it after changing mail settings.
+Log in at `/login` with an existing platform administrator account.
+
+### Resend email delivery
+
+The Resend PHP SDK is installed and Laravel's native `resend` transport is used
+for administrator invitations and password resets. No SMTP credentials or custom
+mail transport are needed.
+
+Configure these values in your deployment environment or untracked `.env`:
+
+```dotenv
+APP_NAME=Voluntrack
+APP_URL=https://voluntrack.js7y.io
+MAIL_MAILER=resend
+MAIL_FROM_ADDRESS=app@voluntrack.js7y.io
+MAIL_FROM_NAME=Voluntrack
+RESEND_API_KEY=your-resend-api-key
+```
+
+Keep the real API key out of source control. Verify `voluntrack.js7y.io` in the
+Resend dashboard and publish the DNS records Resend supplies. If this is a
+domain-restricted sending key, grant access to that verified domain. The sender
+must match a domain you have verified; changing `MAIL_FROM_ADDRESS` alone does
+not verify it. `APP_URL` is also used for links in console-generated mail; use
+the correct HTTPS URL, not localhost.
+
+After adding the key or changing environment settings:
+
+```bash
+php artisan config:clear
+# On production deployments that cache configuration:
+php artisan config:cache
+```
+
+Send an administrator invitation or request a password reset, then check its
+delivery status in Resend. Email is sent synchronously and API errors are not
+silently redirected to a log mailer. A sent response means Resend accepted the
+message, not that the recipient's mail server delivered it; inspect Resend's
+delivery/bounce events when troubleshooting. Local development can explicitly
+set `MAIL_MAILER=log` to avoid sending real messages.
+
+## Complete QC NEMBA walkthrough
+
+1. **Create the organization.** From the platform overview, choose **Create
+   organization**. Enter `QC NEMBA`, customize the slug to `qcnemba`, and optionally
+   set a logo and accent color. Saving opens its onboarding overview.
+2. **Invite its administrator.** In the organization's **Administrators** section,
+   enter the person's name and email and choose **Send secure invitation**. They
+   receive an expiring, single-use password-setup link and then sign in at
+   `/login`. Repeating the form can resend a link (subject to throttling).
+   Existing accounts in this organization can be promoted. Accounts from another
+   organization and platform administrator accounts are never reassigned here.
+3. **Customize the form.** As the organization administrator, open **Settings &
+   public form**. Change the heading, introduction, labels, submission text,
+   confirmation message, logo, color, and supported behavior toggles. Save, then
+   use **Preview Form**. A required name still does not require an account.
+4. **Create locations.** Open **Locations**, add `Pachaug State Forest`, and leave
+   it active. Import/source references are available under the advanced section.
+5. **Create an optional event.** Open **Special events**, create `Fall Trail
+   Cleanup 2026`, enter its date or date range, and leave it available on the
+   public form. Its overview includes a preselected-event logging link.
+6. **Share the form.** Copy the public link from **Overview** or **Settings &
+   public form**: `/qcnemba/log-hours`. Existing `/qcnemba` bookmarks continue to
+   work. Event links use `/qcnemba/log-hours?event=EVENT_ID`.
+7. **Submit without an account.** Open the link in a private browser, choose the
+   forest, enter four hours and a non-future work date, and optionally select the
+   event. Leave the name blank for anonymous logging. The confirmation shows the
+   recorded details and offers **Log Another Entry**.
+8. **Submit ordinary hours.** Log another two hours with **Everyday volunteering /
+   no event** selected. Events are never required. Creating an account remains
+   optional; registered volunteers can view their own history.
+9. **Review and report.** Sign in as the organization administrator. **Volunteer
+   hours** supports reviewing, editing, administrative matching classification,
+   and notes. **Reports** provides totals, location and event breakdowns, hours
+   over time, recent submissions, and an estimated unique-volunteer count.
+   Expand **Refine this view** to filter dates, locations, events, volunteer
+   accounts or submitted names, sources, and matching classification.
+10. **Check the arithmetic and isolation.** The two entries above total six hours:
+    four event hours and two ordinary hours, all six at the location. Marking the
+    four-hour entry as matching makes matching hours four; it does not increase
+    the total. Every card and breakdown follows the same filters. Another
+    organization's administrator cannot view or edit these contributions.
+
+## Product behavior and limits
+
+- Platform administrators manage organizations and access; organization
+  administrators manage only their own active organization's data and settings.
+- Events retain their historical entries when deactivated. Event dates describe
+  the event; they do not prevent later entry of historical hours. Public entry
+  dates cannot be in the future.
+- Organization archiving preserves data and disables its public form and admin
+  workspace. A location with recorded hours cannot be moved to another
+  organization or deleted; deactivate it instead.
+- Anonymous continuity uses a browser-stored UUID, not fingerprinting. Blocking
+  storage does not prevent submission. Estimated volunteers use account IDs,
+  browser identifiers, or normalized names, in that order. Shared names/devices
+  can undercount; changed devices or later sign-in can overcount. Submissions
+  with no usable identifier are reported separately.
+- The public form supports home-screen shortcuts with an organization-specific
+  web manifest. **An internet connection is required**; this is not an offline
+  submission queue.
+- The current account schema still has one `organization_id`. Multi-organization
+  memberships, organization switching, and cross-organization account joining
+  require a future membership model. This change does not silently move people
+  between organizations or introduce an incomplete membership system.
+- Copyable links and previews are provided. QR generation is intentionally
+  deferred rather than sending organization URLs to an external QR service or
+  adding a dependency for an optional feature.
+- Bootstrap and HTMX retain their existing CDN loading. New application styles,
+  copy controls, and continuity behavior are built locally by Vite.
+
+## Validation
+
+```bash
+php artisan test
+php artisan view:cache
+npm run build
+```
+
+[Workflow feature tests](tests/Feature/VolunteerWorkflowTest.php) cover
+onboarding, invitation activation/expiry, branding, anonymous and account-linked
+submissions, event attribution, filtered report arithmetic, and organization
+permissions. Browser checks use a separate temporary database, never production
+or local application records.
+
+---
+
+## Laravel
 
 <p align="center">
 <a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>

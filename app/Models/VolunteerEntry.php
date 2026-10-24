@@ -17,6 +17,7 @@ class VolunteerEntry extends Model
         'anon_token',
         'name',
         'location_id',
+        'special_event_id',
         'volunteered_at',
         'hours',
         'source',
@@ -49,7 +50,12 @@ class VolunteerEntry extends Model
      */
     public function location(): BelongsTo
     {
-        return $this->belongsTo(Location::class);
+        return $this->belongsTo(Location::class)->withTrashed();
+    }
+
+    public function specialEvent(): BelongsTo
+    {
+        return $this->belongsTo(SpecialEvent::class);
     }
 
     /**

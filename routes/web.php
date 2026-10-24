@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\LoginController;
 use App\Http\Controllers\Admin\OrganizationController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\SpecialEventController;
 use App\Http\Controllers\Volunteer\AuthController as VolunteerAuthController;
 use App\Http\Controllers\Volunteer\ForgotPasswordController;
 use App\Http\Controllers\Volunteer\HistoryController as VolunteerHistoryController;
@@ -34,10 +35,12 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 // ---------------------------------------------------------------------------
 Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/overview', [DashboardController::class, 'overview'])->name('overview');
     Route::get('/stats', [DashboardController::class, 'stats'])->name('stats');
+    Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
 
     // Entries
-    Route::resource('entries', EntryController::class);
+    Route::resource('entries', EntryController::class)->except(['index', 'show']);
     Route::post('entries/{entry}/toggle-match',  [EntryController::class, 'toggleMatch'])->name('entries.toggle-match');
     Route::post('entries/{entry}/update-notes',  [EntryController::class, 'updateNotes'])->name('entries.update-notes');
     Route::patch('entries/{entry}/inline',        [EntryController::class, 'updateInline'])->name('entries.update-inline');
@@ -48,11 +51,14 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
 
     // Locations
     Route::resource('locations', LocationController::class)->except(['show']);
+    Route::resource('special-events', SpecialEventController::class)->except(['destroy']);
     Route::patch('locations/{location}/toggle-active', [LocationController::class, 'toggleActive'])
         ->name('locations.toggle-active');
 
     // Organizations (super-admin only)
-    Route::resource('organizations', OrganizationController::class)->except(['show']);
+    Route::resource('organizations', OrganizationController::class);
+    Route::post('organizations/{organization}/administrators', [OrganizationController::class, 'inviteAdministrator'])
+        ->middleware('throttle:6,1')->name('organizations.administrators');
     Route::patch('organizations/{organization}/toggle-active', [OrganizationController::class, 'toggleActive'])
         ->name('organizations.toggle-active');
 
@@ -66,9 +72,9 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
 // ---------------------------------------------------------------------------
 Route::prefix('account/password')->name('account.password.')->group(function () {
     Route::get('/forgot',        [ForgotPasswordController::class, 'showLinkRequestForm'])->name('request');
-    Route::post('/forgot',       [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('email');
+    Route::post('/forgot',       [ForgotPasswordController::class, 'sendResetLinkEmail'])->middleware('throttle:6,1')->name('email');
     Route::get('/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('reset');
-    Route::post('/reset',        [ResetPasswordController::class, 'reset'])->name('update');
+    Route::post('/reset',        [ResetPasswordController::class, 'reset'])->middleware('throttle:6,1')->name('update');
 });
 
 // ---------------------------------------------------------------------------
@@ -76,7 +82,9 @@ Route::prefix('account/password')->name('account.password.')->group(function () 
 // Must be defined LAST so the {org:slug} wildcard doesn't swallow admin/auth routes
 // ---------------------------------------------------------------------------
 Route::prefix('{org:slug}')->name('org.')->group(function () {
-    Route::get('/',        [VolunteerHourController::class, 'index'])->name('hours.index');
+    Route::get('/', [VolunteerHourController::class, 'index'])->name('hours.legacy');
+    Route::get('/log-hours', [VolunteerHourController::class, 'index'])->name('hours.index');
+    Route::get('/manifest.webmanifest', [VolunteerHourController::class, 'manifest'])->name('manifest');
     Route::post('/hours',  [VolunteerHourController::class, 'store'])->name('hours.store');
     Route::get('/success', [VolunteerHourController::class, 'success'])->name('hours.success');
 
@@ -88,4 +96,3 @@ Route::prefix('{org:slug}')->name('org.')->group(function () {
     Route::post('/account/logout',   [VolunteerAuthController::class, 'logout'])->name('account.logout');
     Route::get('/account/history',   [VolunteerHistoryController::class, 'index'])->name('account.history');
 });
-

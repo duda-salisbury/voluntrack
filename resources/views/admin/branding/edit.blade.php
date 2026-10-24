@@ -19,6 +19,10 @@
         </div>
     </div>
 
+    <section class="share-panel mb-4">
+        <p class="eyebrow">Ready for your community</p><h2 class="h5">Your public logging link</h2><p class="text-muted small">Save your changes, then preview the form exactly as volunteers will see it.</p>
+        <label for="public-url" class="visually-hidden">Public logging URL</label><div class="d-flex flex-wrap gap-2"><input id="public-url" class="form-control share-url" readonly value="{{ route('org.hours.index', $org) }}"><button type="button" class="btn btn-primary" data-copy-target="public-url">Copy link</button></div><p class="small mt-2 mb-0" data-copy-status role="status"></p>
+    </section>
     <form
         method="POST"
         action="{{ route('admin.branding.update') }}"
@@ -92,9 +96,9 @@
                             name="logo"
                             id="logo"
                             class="form-control @error('logo') is-invalid @enderror"
-                            accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                            accept="image/jpeg,image/png,image/webp"
                         >
-                        <div class="form-text">JPG, PNG, WebP or SVG · max 2 MB · displays at 32px height in the navbar.</div>
+                        <div class="form-text">JPG, PNG or WebP · max 2 MB · displays at 32px height in the navbar.</div>
                         @error('logo') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>
@@ -201,6 +205,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-12">
+                        <input type="hidden" name="require_name" value="0">
                         <div class="form-check form-switch">
                             <input
                                 class="form-check-input"
@@ -218,6 +223,7 @@
                         </div>
                     </div>
                     <div class="col-12">
+                        <input type="hidden" name="show_notes" value="0">
                         <div class="form-check form-switch">
                             <input
                                 class="form-check-input"
@@ -235,6 +241,7 @@
                         </div>
                     </div>
                     <div class="col-12">
+                        <input type="hidden" name="show_hours_hint" value="0">
                         <div class="form-check form-switch">
                             <input
                                 class="form-check-input"

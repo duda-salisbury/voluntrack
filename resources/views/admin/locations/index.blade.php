@@ -17,7 +17,7 @@
             </p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('admin.locations.create') }}" class="btn btn-primary">
+            <a href="{{ route('admin.locations.create', ['organization_id' => request('org')]) }}" class="btn btn-primary">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="me-1" style="vertical-align:-2px;" aria-hidden="true">
                     <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
@@ -26,20 +26,6 @@
             <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">← Dashboard</a>
         </div>
     </div>
-
-    {{-- Flash messages --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
     {{-- Filters --}}
     <form method="GET" action="{{ route('admin.locations.index') }}" class="card mb-4">

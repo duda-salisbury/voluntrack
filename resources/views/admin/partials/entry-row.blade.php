@@ -14,7 +14,8 @@
     </td>
     @endif
     <td>
-        {{ $entry->location->name }}
+        {{ $entry->location?->name ?? 'Archived location' }}
+        <span class="d-block small text-muted mt-1">{{ $entry->specialEvent?->name ?? 'Ordinary volunteering' }}</span>
     </td>
 
     {{-- Hours inline edit --}}
@@ -27,11 +28,15 @@
             min="0.01"
             max="24"
             step="any"
+            name="value"
+            id="entry-hours-{{ $entry->id }}"
+            aria-label="Hours for entry {{ $entry->id }}"
             hx-patch="{{ route('admin.entries.update-inline', $entry) }}"
             hx-trigger="change"
             hx-target="#entry-{{ $entry->id }}"
             hx-swap="outerHTML"
-            onchange="this.closest('tr').querySelectorAll('[data-inline-hours]').forEach(()=>{}); htmx.ajax('PATCH','{{ route('admin.entries.update-inline', $entry) }}',{target:'#entry-{{ $entry->id }}',swap:'outerHTML',values:{field:'hours',value:this.value}})"
+            hx-vals='{"field":"hours"}'
+            hx-headers='{"Accept":"application/json"}'
         >
     </td>
 
@@ -39,15 +44,18 @@
     <td>
         <button
             type="button"
-            class="badge border-0 {{ $entry->is_matched ? 'bg-success' : 'bg-warning text-dark' }}"
+            class="btn btn-sm {{ $entry->is_matched ? 'btn-outline-success' : 'btn-outline-secondary' }}"
             style="cursor: pointer; font-size: .8rem; padding: .35em .6em;"
             title="Click to toggle"
+            aria-label="Toggle matching classification for entry {{ $entry->id }}"
+            aria-pressed="{{ $entry->is_matched ? 'true' : 'false' }}"
             hx-patch="{{ route('admin.entries.update-inline', $entry) }}"
             hx-target="#entry-{{ $entry->id }}"
             hx-swap="outerHTML"
             hx-vals='{"field":"is_matched","value":"{{ $entry->is_matched ? 'false' : 'true' }}"}'
+            hx-headers='{"Accept":"application/json"}'
         >
-            {{ $entry->is_matched ? '✓ Matched' : '✗ Unmatched' }}
+            {{ $entry->is_matched ? 'Matching' : 'Not matching' }}
         </button>
     </td>
 
@@ -57,8 +65,16 @@
             class="form-control form-control-sm"
             rows="2"
             placeholder="Add notes…"
+            aria-label="Notes for entry {{ $entry->id }}"
             style="resize: vertical; min-height: 2.5rem;"
-            onchange="htmx.ajax('PATCH','{{ route('admin.entries.update-inline', $entry) }}',{target:'#entry-{{ $entry->id }}',swap:'outerHTML',values:{field:'notes',value:this.value}})"
+            name="value"
+            id="entry-notes-{{ $entry->id }}"
+            hx-patch="{{ route('admin.entries.update-inline', $entry) }}"
+            hx-trigger="change"
+            hx-target="#entry-{{ $entry->id }}"
+            hx-swap="outerHTML"
+            hx-vals='{"field":"notes"}'
+            hx-headers='{"Accept":"application/json"}'
         >{{ $entry->notes }}</textarea>
     </td>
 

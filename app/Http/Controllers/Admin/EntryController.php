@@ -5,14 +5,22 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Models\Organization;
+use App\Models\SpecialEvent;
 use App\Models\User;
 use App\Models\VolunteerEntry;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\Rule;
 
 class EntryController extends Controller
 {
+    private function authorizeEntry(VolunteerEntry $entry): void
+    {
+        $user = auth()->user();
+        abort_unless($user->isSuperAdmin() || $entry->organization_id === $user->organization_id, 403);
+    }
+
     public function create(): View
     {
         $user      = auth()->user();
@@ -33,8 +41,10 @@ class EntryController extends Controller
 
         $locationsJson  = $locations->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'org' => $l->organization_id])->values();
         $volunteersJson = $volunteers->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'email' => $v->email, 'org' => $v->organization_id])->values();
+        $events = SpecialEvent::with('organization')->orderBy('name')
+            ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))->get();
 
-        return view('admin.entries.create', compact('locations', 'organizations', 'volunteers', 'locationsJson', 'volunteersJson'));
+        return view('admin.entries.create', compact('locations', 'organizations', 'volunteers', 'locationsJson', 'volunteersJson', 'events'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -48,12 +58,11 @@ class EntryController extends Controller
             $orgId = $request->input('organization_id');
         }
 
-        $locationRule = "required|exists:locations,id,organization_id,{$orgId}";
-
         $validated = $request->validate([
             'name'               => 'nullable|string|max:255',
-            'volunteer_user_id'  => 'nullable|exists:users,id',
-            'location_id'        => $locationRule,
+            'volunteer_user_id'  => ['nullable', Rule::exists('users', 'id')->where('organization_id', $orgId)->where('is_admin', false)->whereNull('deleted_at')],
+            'location_id'        => ['required', Rule::exists('locations', 'id')->where('organization_id', $orgId)->whereNull('deleted_at')],
+            'special_event_id'   => ['nullable', Rule::exists('special_events', 'id')->where('organization_id', $orgId)],
             'volunteered_at'     => 'required|date',
             'hours'              => 'required|numeric|min:0.01|max:24',
             'is_matched'         => 'boolean',
@@ -81,24 +90,30 @@ class EntryController extends Controller
 
     public function edit(VolunteerEntry $entry): View
     {
-        $orgId     = auth()->user()->organization_id;
+        $this->authorizeEntry($entry);
+        $orgId = $entry->organization_id;
         $locations = Location::orderBy('name')
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
             ->get();
 
-        return view('admin.entries.edit', compact('entry', 'locations'));
+        $events = SpecialEvent::where('organization_id', $orgId)->orderBy('name')->get();
+
+        return view('admin.entries.edit', compact('entry', 'locations', 'events'));
     }
 
     public function update(Request $request, VolunteerEntry $entry): RedirectResponse
     {
+        $this->authorizeEntry($entry);
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
-            'location_id' => 'required|exists:locations,id',
+            'location_id' => ['required', Rule::exists('locations', 'id')->where('organization_id', $entry->organization_id)->whereNull('deleted_at')],
+            'special_event_id' => ['nullable', Rule::exists('special_events', 'id')->where('organization_id', $entry->organization_id)],
             'volunteered_at' => 'required|date',
             'hours' => 'required|numeric|min:0.01|max:24',
             'is_matched' => 'boolean',
             'notes' => 'nullable|string',
         ]);
+        $validated['is_matched'] = $request->boolean('is_matched');
 
         if (($validated['is_matched'] ?? false) && !$entry->is_matched) {
             $validated['matched_by_admin_id'] = auth()->id();
@@ -127,6 +142,7 @@ class EntryController extends Controller
 
     public function updateInline(Request $request, VolunteerEntry $entry)
     {
+        $this->authorizeEntry($entry);
         $field = $request->input('field');
 
         match ($field) {
@@ -135,6 +151,7 @@ class EntryController extends Controller
                 $entry->update(['hours' => $request->input('value')]);
             })(),
             'is_matched' => (function () use ($request, $entry) {
+                $request->validate(['value' => ['required', Rule::in(['true', 'false', '1', '0'])]]);
                 $val = filter_var($request->input('value'), FILTER_VALIDATE_BOOLEAN);
                 $entry->is_matched = $val;
                 $entry->matched_by_admin_id = $val ? auth()->id() : null;
@@ -147,19 +164,21 @@ class EntryController extends Controller
             default => abort(422, 'Unknown field'),
         };
 
-        $entry->load(['location', 'matchedByAdmin', 'organization']);
+        $entry->load(['location', 'specialEvent', 'matchedByAdmin', 'organization']);
         return response(view('admin.partials.entry-row', ['entry' => $entry, 'justSaved' => true]))
             ->header('HX-Trigger', 'statsUpdated');
     }
 
     public function toggleMatch(Request $request, VolunteerEntry $entry)
     {
+        $this->authorizeEntry($entry);
         $entry->is_matched = !$entry->is_matched;
         $entry->matched_by_admin_id = $entry->is_matched ? auth()->id() : null;
         $entry->save();
 
         if ($request->header('HX-Request')) {
-            return view('admin.partials.entry-row', compact('entry'));
+            return response(view('admin.partials.entry-row', compact('entry')))
+                ->header('HX-Trigger', 'statsUpdated');
         }
 
         return back()->with('success', 'Match status updated.');
@@ -167,6 +186,7 @@ class EntryController extends Controller
 
     public function updateNotes(Request $request, VolunteerEntry $entry)
     {
+        $this->authorizeEntry($entry);
         $request->validate([
             'notes' => 'nullable|string',
         ]);

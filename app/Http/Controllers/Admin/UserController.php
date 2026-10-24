@@ -107,7 +107,7 @@ class UserController extends Controller
         ]);
 
         // Org-admins always create users in their own org
-        $orgId = $adminOrgId ?? ($validated['organization_id'] ?: null);
+        $orgId = $adminOrgId ?? ($validated['organization_id'] ?? null);
 
         // Org-admins can only create volunteer accounts (not other admins)
         $isAdmin = $adminOrgId === null
@@ -165,7 +165,7 @@ class UserController extends Controller
             : $user->is_admin;
 
         $orgId = $adminOrgId === null
-            ? ($validated['organization_id'] ?: null)
+            ? ($validated['organization_id'] ?? null)
             : $user->organization_id;
 
         $update = [

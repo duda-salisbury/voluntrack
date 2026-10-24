@@ -5,7 +5,7 @@
 @section('content')
 <div class="container py-4">
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
         <div>
             <h1 class="h3 mb-0">My Volunteer History</h1>
             <p class="text-muted mb-0">{{ $org->name }}</p>
@@ -55,7 +55,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Date</th>
-                            <th>Location</th>
+                            <th>Location / event</th>
                             <th class="text-end">Hours</th>
                             <th>Notes</th>
                         </tr>
@@ -64,7 +64,7 @@
                         @foreach($entries as $entry)
                         <tr>
                             <td class="text-nowrap">{{ $entry->volunteered_at->format('M j, Y') }}</td>
-                            <td>{{ $entry->location?->name ?? '—' }}</td>
+                            <td>{{ $entry->location?->name ?? '—' }}<span class="d-block small text-muted">{{ $entry->specialEvent?->name ?? 'Ordinary volunteering' }}</span></td>
                             <td class="text-end fw-semibold">{{ number_format($entry->hours, 2) }}</td>
                             <td class="text-muted small">{{ $entry->notes ?? '' }}</td>
                         </tr>

@@ -5,20 +5,16 @@
 @section('content')
 <div class="container" style="max-width: 640px;">
     <div class="text-center mb-4">
-        <h1 class="mb-1">Log Your Hours</h1>
-        <p class="text-muted">Track your volunteer trail work and conservation efforts</p>
+        <p class="eyebrow">{{ $org->name }} / Every hour matters</p>
+        <h1 class="mb-2">{{ $org->config->welcomeTitle }}</h1>
+        <p class="text-muted">{{ $org->config->welcomeMessage }}</p>
     </div>
 
     <div id="form-container">
-        @if(isset($htmxPartial) && $htmxPartial)
-            @if(isset($showSuccess) && $showSuccess)
-                @include('hours.partials.success-inline')
-            @else
-                @include('hours.partials.form')
-            @endif
-        @else
-            @include('hours.partials.form')
+        @if(auth()->check() && auth()->user()->isVolunteer() && auth()->user()->organization_id !== $org->id)
+            <p class="small text-muted">Your account is associated with another organization. You can still log hours here, but they won't be linked to that account.</p>
         @endif
+        @include('hours.partials.form')
     </div>
 
     <div class="card mt-4">
@@ -28,8 +24,9 @@
                 <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
             <div>
-                <h6 class="mb-1">Why track hours?</h6>
-                <p class="text-muted small mb-0">Your volunteer hours help secure grants, demonstrate community impact, and show the value of trail maintenance work.</p>
+                <h2 class="h6 mb-1">Small moments. Lasting impact.</h2>
+                <p class="text-muted small mb-0">Your hours help {{ $org->name }} demonstrate community impact and support future funding. No account is needed.</p>
+                <p class="text-muted small mt-2 mb-0">Log regularly? Use your browser's &ldquo;Add to Home Screen&rdquo; to keep this form handy. An internet connection is required to submit.</p>
             </div>
         </div>
     </div>

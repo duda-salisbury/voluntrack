@@ -74,6 +74,17 @@
                         @enderror
                     </div>
 
+                    <div class="col-12 mb-4">
+                        <label for="special_event_id" class="form-label fw-semibold">Special event <span class="text-muted fw-normal">(optional)</span></label>
+                        <select name="special_event_id" id="special_event_id" class="form-select @error('special_event_id') is-invalid @enderror">
+                            <option value="">Everyday volunteering / no event</option>
+                            @foreach($events as $event)
+                                <option value="{{ $event->id }}" data-org="{{ $event->organization_id }}" @selected(old('special_event_id') == $event->id)>{{ $event->name }}@if(auth()->user()->isSuperAdmin()) ({{ $event->organization?->name }})@endif</option>
+                            @endforeach
+                        </select>
+                        @error('special_event_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
                     <!-- Date -->
                     <div class="col-12 col-md-6 mb-4">
                         <label for="volunteered_at" class="form-label fw-semibold">
@@ -203,6 +214,13 @@ document.addEventListener('DOMContentLoaded', function () {
     let activeIndex = -1;
 
     function filterLocations(orgId) {
+        const eventSelect = document.getElementById('special_event_id');
+        eventSelect.querySelectorAll('option[data-org]').forEach(option => {
+            const available = String(option.dataset.org) === String(orgId);
+            option.hidden = !available;
+            option.disabled = !available;
+            if (!available && option.selected) eventSelect.value = '';
+        });
         const current = locationSel.value;
         locationSel.innerHTML = '';
         const placeholder = document.createElement('option');
@@ -303,6 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const match = orgs.find(o => String(o.id) === String(currentOrgId));
         if (match) { searchInput.value = match.name; filterLocations(currentOrgId); initVolunteerCombobox(currentOrgId); }
     } else {
+        filterLocations(null);
         initVolunteerCombobox(null);
     }
 });

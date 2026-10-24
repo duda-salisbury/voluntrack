@@ -52,7 +52,7 @@ class User extends Authenticatable
      */
     public function isSuperAdmin(): bool
     {
-        return $this->organization_id === null;
+        return $this->is_admin && $this->organization_id === null;
     }
 
     /**
@@ -63,4 +63,3 @@ class User extends Authenticatable
         return ! $this->is_admin;
     }
 }
-

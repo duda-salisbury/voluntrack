@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Volunteer;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,8 +46,12 @@ class ResetPasswordController extends Controller
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('admin.login')
-                ->with('status', __($status));
+            $user = User::where('email', $request->input('email'))->firstOrFail();
+
+            return redirect()->to($user->is_admin
+                ? route('login')
+                : ($user->organization ? route('org.account.login', $user->organization) : route('home')))
+                ->with('success', 'Your password is ready. Sign in to continue.');
         }
 
         return back()->withErrors(['email' => __($status)])->onlyInput('email');

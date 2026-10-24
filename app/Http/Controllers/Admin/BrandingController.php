@@ -40,7 +40,7 @@ class BrandingController extends Controller
         $validated = $request->validate([
             'name'               => 'required|string|max:255',
             'accent_color'       => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'logo'               => 'nullable|image|max:2048|mimes:jpg,jpeg,png,webp,svg',
+            'logo'               => 'nullable|image|max:2048|mimes:jpg,jpeg,png,webp',
             'remove_logo'        => 'nullable|boolean',
             'welcome_title'      => 'required|string|max:255',
             'welcome_message'    => 'required|string|max:500',
@@ -69,7 +69,7 @@ class BrandingController extends Controller
             'form' => [
                 'require_name'    => (bool) ($validated['require_name']    ?? false),
                 'show_notes'      => (bool) ($validated['show_notes']      ?? false),
-                'show_hours_hint' => (bool) ($validated['show_hours_hint'] ?? true),
+                'show_hours_hint' => (bool) ($validated['show_hours_hint'] ?? false),
             ],
         ]);
 

@@ -14,6 +14,7 @@ class HistoryController extends Controller
 {
     public function index(Organization $org): View|RedirectResponse
     {
+        abort_if(! $org->is_active, 404);
         if (! auth()->check() || auth()->user()->is_admin) {
             return redirect()->route('org.account.login', $org)
                 ->with('error', 'Please sign in to view your history.');
@@ -23,7 +24,7 @@ class HistoryController extends Controller
 
         $entries = $user->volunteerEntries()
             ->where('organization_id', $org->id)
-            ->with('location')
+            ->with(['location', 'specialEvent'])
             ->orderBy('volunteered_at', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(20);

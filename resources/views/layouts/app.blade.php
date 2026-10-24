@@ -4,13 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Track your volunteer hours">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @if(isset($org) && $org)
+        <meta name="theme-color" content="{{ $org->accent_color }}">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="manifest" href="{{ route('org.manifest', $org) }}">
+    @endif
 
     <title>@yield('title', $org->name ?? 'Voluntrack') — {{ $org->name ?? 'Voluntrack' }}</title>
 
     <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    @if(isset($org) && $org && $org->accent_color !== '#0d6efd')
+    @if(isset($org) && $org)
     {{-- Override Bootstrap's primary colour using per-component CSS custom properties.
          No Sass compilation required — pure runtime theming. --}}
     <style>
@@ -19,27 +26,34 @@
             --org-accent-rgb: {{ $org->accent_color_rgb }};
             --bs-primary:     {{ $org->accent_color }};
             --bs-primary-rgb: {{ $org->accent_color_rgb }};
-            --bs-link-color:       {{ $org->accent_color }};
-            --bs-link-hover-color: color-mix(in srgb, {{ $org->accent_color }} 80%, black);
+            --bs-link-color:       color-mix(in srgb, {{ $org->accent_color }} 40%, #10271d);
+            --bs-link-hover-color: color-mix(in srgb, {{ $org->accent_color }} 25%, #10271d);
         }
         .btn-primary {
             --bs-btn-bg:                  {{ $org->accent_color }};
+            --bs-btn-color:               {{ $org->accent_text_color }};
             --bs-btn-border-color:        {{ $org->accent_color }};
-            --bs-btn-hover-bg:            color-mix(in srgb, {{ $org->accent_color }} 85%, black);
-            --bs-btn-hover-border-color:  color-mix(in srgb, {{ $org->accent_color }} 85%, black);
-            --bs-btn-active-bg:           color-mix(in srgb, {{ $org->accent_color }} 75%, black);
-            --bs-btn-active-border-color: color-mix(in srgb, {{ $org->accent_color }} 75%, black);
+            --bs-btn-hover-bg:            {{ $org->accent_color }};
+            --bs-btn-hover-color:         {{ $org->accent_text_color }};
+            --bs-btn-hover-border-color:  {{ $org->accent_color }};
+            --bs-btn-active-bg:           {{ $org->accent_color }};
+            --bs-btn-active-color:        {{ $org->accent_text_color }};
+            --bs-btn-active-border-color: {{ $org->accent_color }};
             --bs-btn-disabled-bg:         {{ $org->accent_color }};
+            --bs-btn-disabled-color:      {{ $org->accent_text_color }};
             --bs-btn-disabled-border-color: {{ $org->accent_color }};
         }
         .btn-outline-primary {
-            --bs-btn-color:              {{ $org->accent_color }};
-            --bs-btn-border-color:       {{ $org->accent_color }};
+            --bs-btn-color:              color-mix(in srgb, {{ $org->accent_color }} 40%, #10271d);
+            --bs-btn-border-color:       color-mix(in srgb, {{ $org->accent_color }} 40%, #10271d);
             --bs-btn-hover-bg:           {{ $org->accent_color }};
+            --bs-btn-hover-color:        {{ $org->accent_text_color }};
             --bs-btn-hover-border-color: {{ $org->accent_color }};
             --bs-btn-active-bg:          {{ $org->accent_color }};
+            --bs-btn-active-color:       {{ $org->accent_text_color }};
         }
-        .text-primary  { color: {{ $org->accent_color }} !important; }
+        .btn-primary:hover { box-shadow: 0 0 0 .15rem color-mix(in srgb, {{ $org->accent_color }} 25%, transparent); }
+        .text-primary  { color: color-mix(in srgb, {{ $org->accent_color }} 40%, #10271d) !important; }
         .border-primary { border-color: {{ $org->accent_color }} !important; }
         .bg-primary    { background-color: {{ $org->accent_color }} !important; }
     </style>
@@ -47,7 +61,8 @@
 
     @stack('styles')
 </head>
-<body>
+<body class="public-shell">
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <nav class="navbar bg-body-tertiary border-bottom mb-4">
         <div class="container">
             <a href="{{ isset($org) && $org ? route('org.hours.index', $org) : route('home') }}" class="navbar-brand fw-bold d-flex align-items-center gap-2">
@@ -66,18 +81,22 @@
             <div class="d-flex align-items-center gap-2">
                 @auth
                     @if(auth()->user()->is_admin)
-                        <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-outline-primary">Admin</a>
+                        <a href="{{ route('admin.overview') }}" class="btn btn-sm btn-outline-primary">Workspace</a>
                     @elseif(isset($org) && $org && auth()->user()->organization_id === $org->id)
                         <a href="{{ route('org.account.history', $org) }}" class="btn btn-sm btn-outline-secondary">My History</a>
                         <form method="POST" action="{{ route('org.account.logout', $org) }}" class="m-0">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-secondary">Sign Out</button>
                         </form>
+                    @else
+                        <form method="POST" action="{{ route('logout') }}" class="m-0">
+                            @csrf
+                            <button class="btn btn-sm btn-outline-secondary">Sign Out</button>
+                        </form>
                     @endif
                 @else
                     @if(isset($org) && $org)
                         <a href="{{ route('org.account.login', $org) }}" class="btn btn-sm btn-outline-primary">Sign In</a>
-                        <a href="{{ route('org.account.register', $org) }}" class="btn btn-sm btn-primary">Register</a>
                     @endif
                 @endauth
                 @stack('header-actions')
@@ -103,7 +122,8 @@
         </div>
     @endif
 
-    <main>
+    <main id="main-content">
+        <div class="container"><div class="alert alert-danger d-none" id="request-error" role="alert" tabindex="-1"></div></div>
         @yield('content')
     </main>
 

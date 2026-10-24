@@ -7,14 +7,15 @@
 
     <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
         <div>
-            <h1 class="h3 mb-1">Users</h1>
+            <h1 class="h3 mb-1">{{ auth()->user()->isSuperAdmin() ? 'People & access' : 'Volunteers & access' }}</h1>
             <p class="text-muted mb-0">
                 @if(auth()->user()->isSuperAdmin())
                     All users across all organizations.
                 @else
-                    Users in {{ $org->name ?? 'your organization' }}.
+                    Registered volunteers and administrators in {{ $org->name ?? 'your organization' }}.
                 @endif
             </p>
+            <p class="small text-muted mb-0 mt-1">Named and anonymous volunteers do not need an account. Find their contributions in <a href="{{ route('admin.dashboard') }}">Volunteer hours</a>.</p>
         </div>
         <a href="{{ route('admin.users.create') }}" class="btn btn-primary">+ New User</a>
     </div>

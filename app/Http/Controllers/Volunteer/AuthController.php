@@ -74,6 +74,7 @@ class AuthController extends Controller
 
     public function showLogin(Organization $org): View|RedirectResponse
     {
+        abort_if(! $org->is_active, 404);
         if ($this->volunteerIsLoggedIn()) {
             return redirect()->route('org.hours.index', $org);
         }
@@ -83,6 +84,7 @@ class AuthController extends Controller
 
     public function login(Organization $org, Request $request): RedirectResponse
     {
+        abort_if(! $org->is_active, 404);
         $credentials = $request->validate([
             'email'    => 'required|email',
             'password' => 'required',

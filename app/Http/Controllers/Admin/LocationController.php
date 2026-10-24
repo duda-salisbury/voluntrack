@@ -146,6 +146,10 @@ class LocationController extends Controller
         $validated['source']          = $validated['source'] ?? $location->source;
         $validated['is_active']       = $request->boolean('is_active', false);
 
+        if ((int) $resolvedOrgId !== $location->organization_id && $location->volunteerEntries()->exists()) {
+            return back()->withErrors(['organization_id' => 'This location has recorded hours and cannot be moved to another organization. Create a new location there instead.'])->withInput();
+        }
+
         // Regenerate slug only if the name changed
         if ($validated['name'] !== $location->name) {
             $validated['slug'] = Location::generateSlug($validated['name'], $resolvedOrgId, $location->id);

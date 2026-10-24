@@ -7,7 +7,7 @@
             </svg>
         </div>
         <h2 class="h3 mb-2">Thank You!</h2>
-        <p class="text-muted mb-4">Your volunteer hours have been successfully recorded.</p>
+        <p class="text-muted mb-4">{{ $org->config->successMessage }}</p>
 
         @if(isset($entry))
             <div class="d-inline-flex flex-wrap gap-3 justify-content-center bg-light rounded px-4 py-2 mb-4">
@@ -19,18 +19,20 @@
                 <span class="text-muted">•</span>
                 <span>{{ $entry->volunteered_at->format('M j, Y') }}</span>
             </div>
+            <p class="text-muted small">{{ $entry->location?->name }}@if($entry->specialEvent) &middot; {{ $entry->specialEvent->name }}@endif</p>
         @endif
 
         <div class="d-grid mx-auto" style="max-width: 320px;">
-            <button
-                type="button"
+            <a
+                href="{{ route('org.hours.index', $org) }}"
                 class="btn btn-primary"
                 hx-get="{{ route('org.hours.index', $org) }}"
                 hx-target="#form-container"
-                hx-swap="innerHTML"
+                hx-select="#form-container"
+                hx-swap="outerHTML"
             >
                 Log Another Entry
-            </button>
+            </a>
         </div>
     </div>
 </div>

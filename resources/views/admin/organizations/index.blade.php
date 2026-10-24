@@ -46,7 +46,7 @@
                                 @if($organization->logo_url)
                                     <img src="{{ $organization->logo_url }}" alt="" style="height:20px;width:auto;object-fit:contain;">
                                 @endif
-                                <strong>{{ $organization->name }}</strong>
+                                <a class="fw-semibold" href="{{ route('admin.organizations.show', $organization) }}">{{ $organization->name }}</a>
                             </div>
                         </td>
                         <td><code class="small">{{ $organization->slug }}</code></td>
@@ -66,7 +66,7 @@
                                        class="btn btn-sm btn-outline-secondary" title="Preview public form">↗</a>
                                 @endif
                                 <a href="{{ route('admin.organizations.edit', $organization) }}"
-                                   class="btn btn-sm btn-outline-primary">Edit</a>
+                                   class="btn btn-sm btn-outline-primary">Settings</a>
                                 <form method="POST" action="{{ route('admin.organizations.toggle-active', $organization) }}" class="m-0">
                                     @csrf @method('PATCH')
                                     <button type="submit"
@@ -78,8 +78,8 @@
                                     @csrf @method('DELETE')
                                     <button type="submit"
                                         class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('Permanently delete \"{{ addslashes($organization->name) }}\"? This cannot be undone.')"
-                                    >Delete</button>
+                                        onclick="return confirm('Archive this organization? Its public form and admin workspace will be unavailable. Recorded hours are preserved.')"
+                                    >Archive</button>
                                 </form>
                             </div>
                         </td>

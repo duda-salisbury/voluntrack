@@ -19,7 +19,7 @@
         @foreach($organizations as $org)
             <option
                 value="{{ $org->id }}"
-                {{ old('organization_id', $location->organization_id ?? '') == $org->id ? 'selected' : '' }}
+                {{ old('organization_id', $location->organization_id ?? request('organization_id')) == $org->id ? 'selected' : '' }}
             >{{ $org->name }}</option>
         @endforeach
     </select>
@@ -67,7 +67,9 @@
     @enderror
 </div>
 
-<div class="row g-3 mb-3">
+<details class="mb-3">
+<summary class="small text-muted mb-3">Advanced / import reference</summary>
+<div class="row g-3">
     <div class="col-sm-6">
         <label for="source" class="form-label fw-semibold">
             Source <span class="text-muted fw-normal">(optional)</span>
@@ -87,6 +89,7 @@
             <div class="form-text">e.g. manual, trailforks, csv</div>
         @enderror
     </div>
+    </details>
     <div class="col-sm-6">
         <label for="external_id" class="form-label fw-semibold">
             External ID <span class="text-muted fw-normal">(optional)</span>

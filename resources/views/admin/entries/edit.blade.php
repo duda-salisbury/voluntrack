@@ -40,6 +40,17 @@
                         @enderror
                     </div>
 
+                    <div class="col-12 mb-4">
+                        <label for="special_event_id" class="form-label fw-semibold">Special event <span class="text-muted fw-normal">(optional)</span></label>
+                        <select name="special_event_id" id="special_event_id" class="form-select @error('special_event_id') is-invalid @enderror">
+                            <option value="">Everyday volunteering / no event</option>
+                            @foreach($events as $event)
+                                <option value="{{ $event->id }}" @selected(old('special_event_id', $entry->special_event_id) == $event->id)>{{ $event->name }}{{ $event->is_active ? '' : ' (inactive)' }}</option>
+                            @endforeach
+                        </select>
+                        @error('special_event_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
                     <!-- Date -->
                     <div class="col-12 col-md-6 mb-4">
                         <label for="volunteered_at" class="form-label fw-semibold">

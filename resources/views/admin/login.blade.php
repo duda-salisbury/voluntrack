@@ -63,6 +63,8 @@
                     </div>
                 </div>
 
+                <p class="small text-end"><a href="{{ route('account.password.request') }}">Forgot your password?</a></p>
+
                 <!-- Submit Button -->
                 <div class="d-grid gap-3">
                     <button type="submit" class="btn btn-primary btn-lg">

@@ -1,4 +1,4 @@
-<div class="col-12 col-md-6 col-lg-3">
+<div class="col-6 col-xl-3">
     <div class="card">
         <div class="card-body">
             <div class="text-muted small mb-1">Total Entries</div>
@@ -6,7 +6,7 @@
         </div>
     </div>
 </div>
-<div class="col-12 col-md-6 col-lg-3">
+<div class="col-6 col-xl-3">
     <div class="card">
         <div class="card-body">
             <div class="text-muted small mb-1">Total Hours</div>
@@ -14,19 +14,19 @@
         </div>
     </div>
 </div>
-<div class="col-12 col-md-6 col-lg-3">
+<div class="col-6 col-xl-3">
     <div class="card">
         <div class="card-body">
-            <div class="text-muted small mb-1">Matched Hours</div>
+            <div class="text-muted small mb-1">Matching Hours</div>
             <div class="fs-2 fw-bold text-primary">{{ number_format($stats['matched_hours'], 1) }}</div>
         </div>
     </div>
 </div>
-<div class="col-12 col-md-6 col-lg-3">
+<div class="col-6 col-xl-3">
     <div class="card">
         <div class="card-body">
-            <div class="text-muted small mb-1">Unmatched Hours</div>
-            <div class="fs-2 fw-bold text-warning">{{ number_format($stats['unmatched_hours'], 1) }}</div>
+            <div class="text-muted small mb-1">Other Hours</div>
+            <div class="fs-2 fw-bold">{{ number_format($stats['unmatched_hours'], 1) }}</div>
         </div>
     </div>
 </div>
