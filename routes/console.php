@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -14,7 +15,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('createAdmin {--name= : Administrator name} {--email= : Administrator email}', function () {
-    $interactive = $this->input->isInteractive();
+    $interactive = ! $this->option('no-interaction') && $this->input->isInteractive();
     $name = $this->option('name');
     $email = $this->option('email');
 
@@ -24,10 +25,15 @@ Artisan::command('createAdmin {--name= : Administrator name} {--email= : Adminis
         return Command::FAILURE;
     }
 
-    $name = filled($name) ? $name : $this->ask('Name');
-    $email = filled($email) ? $email : $this->ask('Email');
-    $password = $interactive ? $this->secret('Password (at least 8 characters)') : Str::random(64);
-    $confirmation = $interactive ? $this->secret('Confirm password') : $password;
+    if ($interactive) {
+        $name = filled($name) ? $name : $this->ask('Name');
+        $email = filled($email) ? $email : $this->ask('Email');
+        $password = $this->secret('Password (at least 8 characters)');
+        $confirmation = $this->secret('Confirm password');
+    } else {
+        $password = Str::random(64);
+        $confirmation = $password;
+    }
 
     $validator = Validator::make([
         'name' => $name,
@@ -51,7 +57,7 @@ Artisan::command('createAdmin {--name= : Administrator name} {--email= : Adminis
     User::create([
         'name' => $name,
         'email' => $email,
-        'password' => $password,
+        'password' => Hash::make($password),
         'is_admin' => true,
         'organization_id' => null,
     ]);

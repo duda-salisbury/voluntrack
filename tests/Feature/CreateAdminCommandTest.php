@@ -5,9 +5,13 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
 
@@ -166,5 +170,55 @@ class CreateAdminCommandTest extends TestCase
             '--name' => 'Platform Admin', '--email' => 'admin@example.test', '--no-interaction' => true,
         ])->assertFailed();
         $this->assertTrue(User::firstOrFail()->isSuperAdmin());
+    }
+
+    public function test_no_interaction_option_overrides_an_interactive_input_in_a_remote_runner(): void
+    {
+        Notification::fake();
+        $password = bin2hex(random_bytes(32));
+        Str::createRandomStringsUsing(fn () => $password);
+
+        try {
+            $command = Artisan::all()['createAdmin'];
+            $input = new ArrayInput([
+                '--name' => 'Cloud Administrator',
+                '--email' => 'cloud-admin@example.test',
+                '--no-interaction' => true,
+            ]);
+            $input->setInteractive(true);
+            $output = new BufferedOutput;
+
+            $this->assertSame(0, $command->run($input, $output));
+            $user = User::where('email', 'cloud-admin@example.test')->firstOrFail();
+            $this->assertTrue($user->isSuperAdmin());
+            $this->assertNull($user->organization_id);
+            $this->assertNotSame($password, $user->password);
+            $this->assertTrue(Hash::check($password, $user->password));
+            $text = $output->fetch();
+            $this->assertStringNotContainsString($password, $text);
+            $this->assertStringNotContainsString('Confirm password', $text);
+            Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user, $text) {
+                $this->assertTrue(Password::tokenExists($user, $notification->token));
+                $this->assertStringNotContainsString($notification->token, $text);
+
+                return true;
+            });
+        } finally {
+            Str::createRandomStringsNormally();
+        }
+    }
+
+    public function test_remote_runner_with_interactive_input_and_missing_options_fails_without_prompts(): void
+    {
+        Notification::fake();
+        $command = Artisan::all()['createAdmin'];
+        $input = new ArrayInput(['--no-interaction' => true]);
+        $input->setInteractive(true);
+        $output = new BufferedOutput;
+
+        $this->assertSame(1, $command->run($input, $output));
+        $this->assertStringContainsString('requires both --name and --email', $output->fetch());
+        $this->assertDatabaseCount('users', 0);
+        Notification::assertNothingSent();
     }
 }
