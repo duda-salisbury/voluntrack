@@ -29,8 +29,20 @@ class AdminMiddleware
             }
         }
 
-        abort_unless($user->isPlatformWorkspace() || $user->adminOrganization(), 403, 'Your administrative access is unavailable for this organization.');
-        view()->share('org', $user->adminOrganization());
+        $organization = $user->adminOrganization();
+        abort_unless($user->isPlatformWorkspace() || $organization, 403, 'Your administrative access is unavailable for this organization.');
+
+        if ($user->isSuperAdmin()) {
+            $markers = array_filter([$request->input('_admin_workspace'), $request->header('X-Admin-Workspace')], fn ($value) => $value !== null);
+            abort_if($organization && ! $request->isMethodSafe() && ! $markers, 409,
+                'The organization workspace changed. Reload the page before continuing.');
+            foreach ($markers as $workspace) {
+                abort_unless(is_scalar($workspace) && (string) $workspace === (string) ($organization?->id ?? 0), 409,
+                    'The organization workspace changed. Reload the page before continuing.');
+            }
+        }
+
+        view()->share('org', $organization);
 
         return $next($request);
     }

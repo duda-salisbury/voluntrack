@@ -8,7 +8,7 @@
         <div class="col-sm-4"><div class="card h-100"><div class="card-body"><div class="text-muted small">{{ $label }} &middot; last 30 days</div><strong class="fs-3">{{ number_format($count) }}</strong></div></div></div>
         @endforeach
     </div>
-    <form method="GET" class="card mb-4"><div class="card-body">
+    <form method="GET" class="card mb-4">@include('admin.partials.workspace-context')<div class="card-body">
         <div class="row g-2">
             <div class="col-md-4"><label class="form-label" for="activity-search">Search actions</label><input id="activity-search" class="form-control" name="search" value="{{ request('search') }}" placeholder="Search activity"></div>
             <div class="col-md-4"><label class="form-label" for="activity-user">User</label><input id="activity-user" class="form-control" name="user" value="{{ request('user') }}" placeholder="Actor or affected person"></div>
@@ -36,7 +36,7 @@
                     </details>
                     @endif
                 </td>
-                <td>{{ $event->actor?->name ?? ($event->category === 'authentication' ? 'Unknown' : 'Anonymous / system') }}</td>
+                <td>{{ $event->actor?->name ?? ($event->category === 'authentication' ? 'Unknown' : 'Anonymous / system') }}@if(($event->metadata['actor_role'] ?? null) === 'platform_admin') <span class="badge bg-secondary-subtle text-secondary">Platform admin</span>@endif</td>
                 @if($platform)<td>{{ $event->organization?->name ?? 'Platform-wide' }}</td>@endif
                 <td><time datetime="{{ $event->created_at->toIso8601String() }}">{{ $event->created_at->format('M j, Y g:i A') }}</time></td>
             </tr>

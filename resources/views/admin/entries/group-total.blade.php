@@ -10,6 +10,7 @@
     <div class="page-heading"><div><p class="eyebrow">Volunteer hours / Group total</p><h1>{{ $entry ? 'Edit group total' : 'Add group total' }}</h1><p class="text-muted mb-0">Record combined hours without assigning them to individuals.</p></div><a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">Back to volunteer hours</a></div>
     <form method="POST" action="{{ $entry ? route('admin.entries.update', $entry) : route('admin.entries.group-total.store') }}" data-group-total>
         @csrf
+        @include('admin.partials.workspace-context')
         @if($entry) @method('PUT') @endif
         @if($locations->isEmpty())<div class="alert alert-info">Add a location before recording a group total. <a href="{{ route('admin.locations.create') }}">Add a location</a></div>@endif
         <div class="card"><div class="card-body">

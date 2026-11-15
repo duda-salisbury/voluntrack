@@ -29,6 +29,7 @@
 
     {{-- Filters --}}
     <form method="GET" action="{{ route('admin.locations.index') }}" class="card mb-4">
+        @include('admin.partials.workspace-context')
         <div class="card-body">
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-sm-5 col-md-4">

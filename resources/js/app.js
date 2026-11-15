@@ -312,6 +312,8 @@ document.addEventListener('htmx:responseError', event => {
         }
     } else if ([401, 419].includes(event.detail.xhr.status)) {
         message = 'Your session has expired. Reload the page and sign in again before retrying.';
+    } else if (event.detail.xhr.status === 409) {
+        message = 'The organization workspace changed. Reload the page before continuing.';
     } else if (event.detail.xhr.status === 403) {
         message = 'You do not have permission to make this change.';
     }

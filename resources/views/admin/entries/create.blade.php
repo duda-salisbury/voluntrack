@@ -14,6 +14,7 @@
         <div class="card-body">
             <form method="POST" action="{{ route('admin.entries.store') }}" data-event-locations>
                 @csrf
+                @include('admin.partials.workspace-context')
 
                 <div class="row">
                     @if(auth()->user()->isPlatformWorkspace())

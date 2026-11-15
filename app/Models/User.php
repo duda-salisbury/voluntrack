@@ -75,7 +75,14 @@ class User extends Authenticatable
     {
         $id = $this->adminOrganizationId();
 
-        return $id === null ? null : $this->organizations()
+        if ($id === null) {
+            return null;
+        }
+        if ($this->isSuperAdmin()) {
+            return Organization::find($id);
+        }
+
+        return $this->organizations()
             ->where('organizations.id', $id)->where('organizations.is_active', true)
             ->wherePivot('role', 'admin')->first();
     }

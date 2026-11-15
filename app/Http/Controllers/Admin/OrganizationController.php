@@ -37,7 +37,7 @@ class OrganizationController extends Controller
     public function inviteAdministrator(Request $request, Organization $organization): RedirectResponse
     {
         $actor = $request->user();
-        abort_unless($actor->isSuperAdmin() || $actor->adminOrganizationId() === $organization->id, 403);
+        abort_unless($actor->isPlatformWorkspace() || $actor->adminOrganizationId() === $organization->id, 403);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -79,7 +79,7 @@ class OrganizationController extends Controller
             return $user;
         });
 
-        return redirect()->route($actor->isSuperAdmin() ? 'admin.organizations.show' : 'admin.users.index', $actor->isSuperAdmin() ? $organization : [])
+        return redirect()->route($actor->isPlatformWorkspace() ? 'admin.organizations.show' : 'admin.users.index', $actor->isPlatformWorkspace() ? $organization : [])
             ->with('success', "Administrator access assigned. An email was sent to {$user->email}.");
     }
 
@@ -91,6 +91,11 @@ class OrganizationController extends Controller
             'search' => 'nullable|string|max:255',
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
         ]);
+        $filters = array_filter($validated, fn ($value) => filled($value));
+        if ($request->integer('page') > 1) {
+            $filters['page'] = $request->integer('page');
+        }
+        $request->session()->put('platform_organization_filters', $filters);
         $organizations = Organization::withCount(['locations', 'volunteerEntries', 'users as administrators_count' => fn ($q) => $q->where('organization_user.role', 'admin')])
             ->when(! empty($validated['search']), fn ($q) => $q->where('name', 'like', '%'.trim($validated['search']).'%'))
             ->when(! empty($validated['status']), fn ($q) => $q->where('is_active', $validated['status'] === 'active'))
@@ -251,7 +256,7 @@ class OrganizationController extends Controller
 
     private function requireSuperAdmin(): void
     {
-        if (! auth()->user()?->isSuperAdmin()) {
+        if (! auth()->user()?->isPlatformWorkspace()) {
             abort(403, 'Only super-admins can manage organizations.');
         }
     }

@@ -42,6 +42,7 @@
             <form method="POST" action="{{ route('admin.locations.destroy', $location) }}" class="m-0"
                   onsubmit="return confirm('Delete this location? This cannot be undone.');">
                 @csrf
+                @include('admin.partials.workspace-context')
                 @method('DELETE')
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
             </form>

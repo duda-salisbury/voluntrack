@@ -21,6 +21,11 @@ class Audit
         ?array $metadata = null,
         ?string $ipAddress = null,
     ): void {
+        $actor = auth()->user();
+        if ($actor && $actor->id === $actorId && $actor->isSuperAdmin()
+            && $organizationId !== null && $actor->adminOrganizationId() === $organizationId) {
+            $metadata = [...($metadata ?? []), 'actor_role' => 'platform_admin'];
+        }
         $data = [
             'event_type' => $type,
             'category' => $category,

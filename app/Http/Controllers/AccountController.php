@@ -60,7 +60,7 @@ class AccountController extends Controller
         abort_unless($organization->is_active && $request->user()->hasOrganizationRole($organization->id), 403);
         $data = $request->validate(['destination' => ['nullable', Rule::in(['overview', 'settings', 'people'])]]);
         if ($request->user()->hasOrganizationRole($organization->id, 'admin')) {
-            $request->session()->put('admin_organization_id', $organization->id);
+            $this->selectAdminOrganization($request, $organization);
             $route = match ($data['destination'] ?? 'overview') {
                 'settings' => 'admin.branding.edit',
                 'people' => 'admin.users.index',
@@ -73,12 +73,33 @@ class AccountController extends Controller
         return redirect()->route('org.account.history', $organization);
     }
 
+    public function openWorkspace(Request $request, Organization $organization): RedirectResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403);
+        $this->selectAdminOrganization($request, $organization);
+
+        return redirect()->route('admin.overview');
+    }
+
+    private function selectAdminOrganization(Request $request, Organization $organization): void
+    {
+        $request->session()->put('admin_organization_id', $organization->id);
+        if ($request->user()->isSuperAdmin()) {
+            Audit::record('workspace.entered', 'organization', 'Platform administrator opened the organization workspace',
+                actorId: $request->user()->id, organizationId: $organization->id, subjectType: 'organization', subjectId: $organization->id);
+        }
+    }
+
     public function platform(Request $request): RedirectResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
         $data = $request->validate(['destination' => ['nullable', Rule::in(['overview', 'organizations'])]]);
         $request->session()->forget('admin_organization_id');
-        return redirect()->route(($data['destination'] ?? 'overview') === 'organizations' ? 'admin.organizations.index' : 'admin.overview');
+        if (($data['destination'] ?? 'overview') === 'organizations') {
+            return redirect()->route('admin.organizations.index', $request->session()->get('platform_organization_filters', []));
+        }
+
+        return redirect()->route('admin.overview');
     }
 
     public function join(Request $request, Organization $organization): RedirectResponse

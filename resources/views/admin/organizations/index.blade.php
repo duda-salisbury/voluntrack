@@ -17,7 +17,7 @@
                 <td><span class="badge {{ $organization->is_active ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle' }}">{{ $organization->is_active ? 'Active' : 'Inactive' }}</span></td>
                 <td>{{ number_format($organization->administrators_count) }} @if($organization->administrators_count === 0)<span class="badge bg-warning-subtle text-dark">Needs access</span>@endif</td>
                 <td>{{ number_format($organization->locations_count) }}</td><td>{{ number_format($organization->volunteer_entries_count) }}</td>
-                <td><a class="btn btn-sm btn-outline-primary" href="{{ route('admin.organizations.show', $organization) }}">Details & access</a></td>
+                <td><div class="d-flex flex-wrap gap-2"><form method="POST" action="{{ route('account.organizations.workspace', $organization) }}">@csrf<button class="btn btn-sm btn-primary">Open Workspace</button></form><a class="btn btn-sm btn-outline-primary" href="{{ route('admin.organizations.show', $organization) }}">Details & access</a></div></td>
             </tr>
         @empty
             <tr><td colspan="6"><div class="empty-state"><h2 class="h5">No organizations found.</h2><p>Try a different search or create an organization.</p><a href="{{ route('admin.organizations.create') }}" class="btn btn-primary">Create organization</a></div></td></tr>

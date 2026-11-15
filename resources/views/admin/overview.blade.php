@@ -3,6 +3,9 @@
 @section('content')
 <div class="container-fluid workspace">
     @if($organization)
+        @unless($organization->is_active)
+            <div class="alert alert-warning">This organization is inactive. Its public form and ordinary administrator access are unavailable until it is activated in platform settings.</div>
+        @endunless
         <div class="page-heading">
             <div><p class="eyebrow">{{ $organization->name }} / Overview</p><h1>Welcome back, {{ Str::before(auth()->user()->name, ' ') }}.</h1><p class="text-muted mb-0">Here's how your community is showing up.</p></div>
             <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" href="{{ route('admin.entries.create') }}">Add individual hours</a><a class="btn btn-outline-primary" href="{{ route('admin.entries.group') }}">Add multiple volunteers</a><a class="btn btn-outline-primary" href="{{ route('admin.entries.group-total') }}">Add group total</a><a class="btn btn-outline-primary" href="#share-form">Share volunteer form</a></div>

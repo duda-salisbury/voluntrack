@@ -5,6 +5,7 @@
     <div class="page-heading"><div><p class="eyebrow">Volunteer hours / Multiple volunteers</p><h1>Add multiple volunteers</h1><p class="text-muted mb-0">Choose the shared details, then add each person's contribution. Nothing is saved until you submit.</p></div><a class="btn btn-outline-secondary" href="{{ route('admin.entries.group-total', request()->only('event')) }}">Record a group total instead</a></div>
     <form method="POST" action="{{ route('admin.entries.group.store') }}" data-group-form data-event-locations>
         @csrf
+        @include('admin.partials.workspace-context')
         <section class="card mb-4"><div class="card-body"><h2 class="h5 mb-3">Shared details</h2><div class="row g-3">
             <div class="col-md-4"><label class="form-label" for="group-date">Date</label><input id="group-date" class="form-control" type="date" name="volunteered_at" value="{{ old('volunteered_at', now()->toDateString()) }}" required></div>
             <div class="col-md-4"><label class="form-label" for="group-location">Location</label><select id="group-location" class="form-select" name="location_id" required><option value="">Choose a location</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected(old('location_id') == $location->id)>{{ $location->name }}{{ $location->is_active ? '' : ' (inactive)' }}</option>@endforeach</select><div class="form-text" data-event-location-status role="status"></div></div>

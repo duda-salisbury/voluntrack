@@ -48,6 +48,7 @@ Route::middleware('auth')->prefix('my-account')->name('account.')->group(functio
     Route::put('/password', [AccountController::class, 'updatePassword'])->name('profile.password');
     Route::get('/organizations', [AccountController::class, 'organizations'])->name('organizations');
     Route::post('/organizations/{organization}/switch', [AccountController::class, 'switchOrganization'])->name('organizations.switch');
+    Route::post('/organizations/{organization}/workspace', [AccountController::class, 'openWorkspace'])->name('organizations.workspace');
     Route::post('/organizations/{organization}/join', [AccountController::class, 'join'])->name('organizations.join');
     Route::post('/platform', [AccountController::class, 'platform'])->name('platform');
     Route::get('/hours', [AccountController::class, 'hours'])->name('hours');

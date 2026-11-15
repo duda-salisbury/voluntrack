@@ -32,6 +32,7 @@
         <div class="card-body p-4">
             <form method="POST" action="{{ route('admin.locations.update', $location) }}" novalidate>
                 @csrf
+                @include('admin.partials.workspace-context')
                 @method('PUT')
                 @include('admin.locations._form')
                 <div class="d-flex gap-2 flex-wrap">
@@ -53,6 +54,7 @@
             <form method="POST" action="{{ route('admin.locations.destroy', $location) }}"
                   onsubmit="return confirm('Permanently delete this location? This cannot be undone.');">
                 @csrf
+                @include('admin.partials.workspace-context')
                 @method('DELETE')
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete Location</button>
             </form>

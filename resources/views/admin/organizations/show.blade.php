@@ -9,6 +9,7 @@
             <p class="text-muted mb-0">A home for your community's contribution.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <form method="POST" action="{{ route('account.organizations.workspace', $organization) }}">@csrf<button class="btn btn-primary">Open Workspace</button></form>
             <a href="{{ route('admin.organizations.edit', $organization) }}" class="btn btn-outline-secondary">Settings &amp; branding</a>
             <form method="POST" action="{{ route('admin.organizations.toggle-active', $organization) }}">@csrf @method('PATCH')<button class="btn btn-outline-secondary" type="submit" onclick="return confirm('{{ $organization->is_active ? 'Deactivate' : 'Activate' }} this organization?')">{{ $organization->is_active ? 'Deactivate' : 'Activate' }}</button></form>
             <form method="POST" action="{{ route('admin.organizations.destroy', $organization) }}">@csrf @method('DELETE')<button class="btn btn-outline-danger" type="submit" onclick="return confirm('Archive this organization? Its public form and admin workspace will be unavailable. Recorded hours are preserved.')">Archive</button></form>

@@ -14,6 +14,7 @@
         <div class="card-body">
             <form method="POST" action="{{ route('admin.entries.update', $entry) }}" data-event-locations data-existing-event="{{ $entry->special_event_id }}" data-existing-location="{{ $entry->location_id }}">
                 @csrf
+                @include('admin.partials.workspace-context')
                 @method('PUT')
 
                 <div class="row">

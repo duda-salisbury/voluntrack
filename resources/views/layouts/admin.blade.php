@@ -9,7 +9,6 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="admin-shell">
 @php
     $adminUser = auth()->user();
     $adminOrg = $adminUser->adminOrganization();
@@ -31,6 +30,7 @@
         ['admin.branding.edit', 'Settings', 'admin.branding.*'],
     ];
 @endphp
+<body class="admin-shell" @if($adminUser->isSuperAdmin()) hx-headers='{"X-Admin-Workspace":"{{ $adminOrg?->id ?? 0 }}"}' @endif>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header class="admin-topbar">
     <div class="d-flex align-items-center gap-2">
@@ -42,6 +42,12 @@
     <div class="workspace-identity"><span class="eyebrow mb-0">{{ $adminUser->isPlatformWorkspace() ? 'Platform administrator' : 'Organization workspace' }}</span><strong class="text-truncate">{{ $adminOrg?->name ?? 'All organizations' }}</strong></div>
     <div class="ms-auto">@include('layouts.account-menu', ['org' => $adminOrg])</div>
 </header>
+@if($adminUser->isSuperAdmin() && $adminOrg)
+<div class="platform-workspace-banner bg-primary-subtle border-bottom px-3 py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span class="small"><strong>Platform Admin</strong> &middot; Viewing <strong>{{ $adminOrg->name }}</strong>@unless($adminOrg->is_active) <span class="badge bg-secondary">Inactive</span>@endunless</span>
+    <form method="POST" action="{{ route('account.platform') }}">@csrf<input type="hidden" name="destination" value="organizations"><button class="btn btn-sm btn-outline-primary">Return to Platform</button></form>
+</div>
+@endif
 <div class="admin-frame">
     <aside class="offcanvas-md offcanvas-start admin-sidebar" tabindex="-1" id="workspace-navigation" aria-labelledby="navigation-title">
         <div class="offcanvas-header"><h2 class="offcanvas-title h5" id="navigation-title">Your workspace</h2><button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#workspace-navigation" aria-label="Close navigation"></button></div>
@@ -57,7 +63,7 @@
                     <a href="{{ route($destination) }}" class="{{ $active ? 'active' : '' }}" @if($active) aria-current="page" @endif>{{ $label }}</a>
                 @endforeach
             </nav>
-            @if($adminOrg)
+            @if($adminOrg?->is_active)
                 <div class="sidebar-help mt-auto"><p class="eyebrow">Built for your volunteers</p><p class="small text-muted">Keep logging simple. Share the form, and let every hour count.</p><a href="{{ route('org.hours.index', $adminOrg) }}" target="_blank" rel="noopener" class="btn btn-outline-primary w-100">Open public form &nearr;</a></div>
             @endif
         </div>

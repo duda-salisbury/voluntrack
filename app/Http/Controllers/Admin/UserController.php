@@ -97,7 +97,7 @@ class UserController extends Controller
         }
         abort_unless($user->hasOrganizationRole($orgId), 404);
         abort_if($user->id === $actor->id, 403, 'You cannot remove your own administrative membership.');
-        abort_if(! $actor->isPlatformWorkspace() && $user->hasOrganizationRole($orgId, 'admin'), 403, 'Only platform administrators can remove another administrator.');
+        abort_if(! $actor->isSuperAdmin() && $user->hasOrganizationRole($orgId, 'admin'), 403, 'Only platform administrators can remove another administrator.');
         $user->organizations()->detach($orgId);
         Audit::record('membership.removed', 'membership', 'Removed an organization membership',
             actorId: $actor->id, organizationId: $orgId, subjectUserId: $user->id);

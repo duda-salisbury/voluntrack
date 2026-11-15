@@ -2,7 +2,8 @@
 @section('title', 'Impact Reports')
 @section('content')
 <div class="container-fluid workspace">
-    <div class="page-heading"><div><p class="eyebrow">{{ $org?->name ?? 'Across the platform' }} / Community impact</p><h1>Small efforts. Real impact.</h1><p class="text-muted mb-0">A clear picture of the time your community gives.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-secondary" href="{{ route('admin.dashboard', request()->query()) }}">View these submissions</a><a class="btn btn-primary" href="{{ route('admin.reports.export', request()->query()) }}">Download CSV</a></div></div>
+    @php $reportQuery = array_merge(request()->query(), auth()->user()->isSuperAdmin() ? ['_admin_workspace' => $org?->id ?? 0] : []); @endphp
+    <div class="page-heading"><div><p class="eyebrow">{{ $org?->name ?? 'Across the platform' }} / Community impact</p><h1>Small efforts. Real impact.</h1><p class="text-muted mb-0">A clear picture of the time your community gives.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-secondary" href="{{ route('admin.dashboard', $reportQuery) }}">View these submissions</a><a class="btn btn-primary" href="{{ route('admin.reports.export', $reportQuery) }}">Download CSV</a></div></div>
     @include('admin.partials.report-filters', ['filterRoute' => 'admin.reports'])
     <div class="mb-4"><a href="{{ route('admin.volunteer-activity', request()->query()) }}">Explore account-linked volunteer contributions &rarr;</a></div>
     <div class="row g-3 mb-4">@include('admin.partials.stats-cards')</div>

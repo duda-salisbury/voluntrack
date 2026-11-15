@@ -5,6 +5,7 @@
     <div class="page-heading"><div><p class="eyebrow">Special events</p><h1>{{ $event->exists ? 'Edit event' : 'Create an event' }}</h1><p class="text-muted">A shared purpose. Every contribution still keeps its location and date.</p></div></div>
     <form method="POST" action="{{ $event->exists ? route('admin.special-events.update', $event) : route('admin.special-events.store') }}" data-event-location-choices>
         @csrf
+        @include('admin.partials.workspace-context')
         @if($event->exists) @method('PUT') @endif
         <div class="card"><div class="card-body p-4">
             @if(auth()->user()->isPlatformWorkspace() && !$event->exists)

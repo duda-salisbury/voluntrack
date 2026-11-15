@@ -170,6 +170,6 @@ class OrganizationRequestController extends Controller
 
     private function authorizeReviewer(): void
     {
-        abort_unless(auth()->user()?->isSuperAdmin(), 403);
+        abort_unless(auth()->user()?->isPlatformWorkspace(), 403);
     }
 }

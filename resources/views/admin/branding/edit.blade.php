@@ -29,6 +29,7 @@
         enctype="multipart/form-data"
     >
         @csrf
+        @include('admin.partials.workspace-context')
         @method('PUT')
 
         {{-- ----------------------------------------------------------------- --}}

@@ -24,6 +24,7 @@
         <div class="card-body p-4">
             <form method="POST" action="{{ route('admin.locations.store') }}" novalidate>
                 @csrf
+                @include('admin.partials.workspace-context')
                 @include('admin.locations._form', ['location' => null])
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Create Location</button>

@@ -16,6 +16,7 @@
 <summary class="p-3 fw-semibold">Refine this view <span class="text-muted small fw-normal ms-2">{{ count($activeFilters) ? implode(' · ', $activeFilters) : 'All dates and contributions' }}</span></summary>
 <div class="card-body border-top">
     <form method="GET" action="{{ route($filterRoute) }}" class="row g-3">
+        @include('admin.partials.workspace-context')
         @if(auth()->user()->isPlatformWorkspace())
         <div class="col-sm-6 col-xl-3"><label for="organization_id" class="form-label">Organization</label><select id="organization_id" name="organization_id" class="form-select"><option value="">All organizations</option>@foreach($organizations as $organization)<option value="{{ $organization->id }}" @selected(request('organization_id') == $organization->id)>{{ $organization->name }}</option>@endforeach</select></div>
         @endif
