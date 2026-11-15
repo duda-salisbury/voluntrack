@@ -108,8 +108,10 @@
                         <td class="text-muted small text-nowrap">{{ $user->created_at->format('M j, Y') }}</td>
                         <td class="text-end">
                             <div class="d-flex gap-1 justify-content-end">
+                                @if(auth()->user()->isSuperAdmin() || ! $user->is_admin || $user->id === auth()->id())
                                 <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                @if($user->id !== auth()->id())
+                                @endif
+                                @if($user->id !== auth()->id() && (auth()->user()->isSuperAdmin() || ! $user->is_admin))
                                     <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="m-0"
                                           onsubmit="return confirm('Delete {{ addslashes($user->name) }}? This cannot be undone.')">
                                         @csrf @method('DELETE')

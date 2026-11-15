@@ -18,7 +18,7 @@ use App\Models\Organization;
 use Illuminate\Support\Facades\Route;
 
 // ---------------------------------------------------------------------------
-// Root: redirect to the first active organization's public form
+// Root: role-aware landing page and on-demand organization search
 // ---------------------------------------------------------------------------
 Route::get('/', [HomeController::class, 'index'])->name('home');
 

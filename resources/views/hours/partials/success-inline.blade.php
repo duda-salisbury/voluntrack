@@ -33,6 +33,9 @@
             >
                 Log Another Entry
             </a>
+            @if(auth()->check() && auth()->user()->isVolunteer() && auth()->user()->organization_id === $org->id)
+                <a href="{{ route('org.account.history', $org) }}" class="btn btn-outline-secondary mt-2">View my history</a>
+            @endif
         </div>
     </div>
 </div>

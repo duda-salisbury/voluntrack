@@ -1,100 +1,28 @@
 @extends('layouts.admin')
-
 @section('title', 'Organizations')
-
 @section('content')
-<div class="container-fluid" style="max-width: 1000px;">
-
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-            <h1 class="h3 mb-1">Organizations</h1>
-            <p class="text-muted mb-0">All organizations using this Voluntrack instance.</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ route('admin.organizations.create') }}" class="btn btn-primary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="me-1" style="vertical-align:-2px;" aria-hidden="true">
-                    <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                New Organization
-            </a>
-            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">← Dashboard</a>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Name</th>
-                        <th>Slug</th>
-                        <th class="text-center">Locations</th>
-                        <th class="text-center">Entries</th>
-                        <th class="text-center">Status</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($organizations as $organization)
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                {{-- Colour swatch --}}
-                                <span class="rounded-circle d-inline-block flex-shrink-0"
-                                      style="width:14px;height:14px;background:{{ $organization->accent_color }};border:1px solid rgba(0,0,0,.1);"
-                                      title="{{ $organization->accent_color }}"></span>
-                                @if($organization->logo_url)
-                                    <img src="{{ $organization->logo_url }}" alt="" style="height:20px;width:auto;object-fit:contain;">
-                                @endif
-                                <a class="fw-semibold" href="{{ route('admin.organizations.show', $organization) }}">{{ $organization->name }}</a>
-                            </div>
-                        </td>
-                        <td><code class="small">{{ $organization->slug }}</code></td>
-                        <td class="text-center">{{ number_format($organization->locations_count) }}</td>
-                        <td class="text-center">{{ number_format($organization->volunteer_entries_count) }}</td>
-                        <td class="text-center">
-                            @if($organization->is_active)
-                                <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
-                            @else
-                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactive</span>
-                            @endif
-                        </td>
-                        <td class="text-end">
-                            <div class="d-flex gap-1 justify-content-end">
-                                @if($organization->is_active)
-                                    <a href="{{ route('org.hours.index', $organization) }}" target="_blank"
-                                       class="btn btn-sm btn-outline-secondary" title="Preview public form">↗</a>
-                                @endif
-                                <a href="{{ route('admin.organizations.edit', $organization) }}"
-                                   class="btn btn-sm btn-outline-primary">Settings</a>
-                                <form method="POST" action="{{ route('admin.organizations.toggle-active', $organization) }}" class="m-0">
-                                    @csrf @method('PATCH')
-                                    <button type="submit"
-                                        class="btn btn-sm {{ $organization->is_active ? 'btn-outline-warning' : 'btn-outline-success' }}"
-                                        onclick="return confirm('{{ $organization->is_active ? 'Deactivate' : 'Activate' }} this organization?')"
-                                    >{{ $organization->is_active ? 'Deactivate' : 'Activate' }}</button>
-                                </form>
-                                <form method="POST" action="{{ route('admin.organizations.destroy', $organization) }}" class="m-0">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                        class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('Archive this organization? Its public form and admin workspace will be unavailable. Recorded hours are preserved.')"
-                                    >Archive</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            No organizations yet. <a href="{{ route('admin.organizations.create') }}">Create one</a>.
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
+<div class="container-fluid workspace">
+    <div class="page-heading"><div><p class="eyebrow">Platform / Organizations</p><h1>Organizations</h1><p class="text-muted mb-0">Find organizations and manage their access.</p></div><a href="{{ route('admin.organizations.create') }}" class="btn btn-primary">Create organization</a></div>
+    <form method="GET" action="{{ route('admin.organizations.index') }}" class="card mb-4"><div class="card-body"><div class="row g-3 align-items-end">
+        <div class="col-md-6"><label for="org-name" class="form-label">Organization name</label><input id="org-name" type="search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Search by name"></div>
+        <div class="col-md-3"><label for="org-status" class="form-label">Status</label><select id="org-status" name="status" class="form-select"><option value="">All statuses</option><option value="active" @selected(request('status') === 'active')>Active</option><option value="inactive" @selected(request('status') === 'inactive')>Inactive</option></select></div>
+        <div class="col-md-auto d-flex gap-2"><button class="btn btn-primary">Filter</button><a href="{{ route('admin.organizations.index') }}" class="btn btn-outline-secondary">Clear</a></div>
+    </div></div></form>
+    <div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Organization</th><th>Status</th><th>Administrators</th><th>Locations</th><th>Submissions</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        @forelse($organizations as $organization)
+            <tr>
+                <td><a class="fw-semibold" href="{{ route('admin.organizations.show', $organization) }}">{{ $organization->name }}</a><span class="d-block text-muted small">/{{ $organization->slug }}</span></td>
+                <td><span class="badge {{ $organization->is_active ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle' }}">{{ $organization->is_active ? 'Active' : 'Inactive' }}</span></td>
+                <td>{{ number_format($organization->administrators_count) }} @if($organization->administrators_count === 0)<span class="badge bg-warning-subtle text-dark">Needs access</span>@endif</td>
+                <td>{{ number_format($organization->locations_count) }}</td><td>{{ number_format($organization->volunteer_entries_count) }}</td>
+                <td><a class="btn btn-sm btn-outline-primary" href="{{ route('admin.organizations.show', $organization) }}">Details & access</a></td>
+            </tr>
+        @empty
+            <tr><td colspan="6"><div class="empty-state"><h2 class="h5">No organizations found.</h2><p>Try a different search or create an organization.</p><a href="{{ route('admin.organizations.create') }}" class="btn btn-primary">Create organization</a></div></td></tr>
+        @endforelse
+        </tbody>
+    </table></div>@if($organizations->hasPages())<div class="card-footer">{{ $organizations->links() }}</div>@endif</div>
 </div>
 @endsection

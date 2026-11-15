@@ -112,8 +112,8 @@ set `MAIL_MAILER=log` to avoid sending real messages.
    `/login`. Repeating the form can resend a link (subject to throttling).
    Existing accounts in this organization can be promoted. Accounts from another
    organization and platform administrator accounts are never reassigned here.
-3. **Customize the form.** As the organization administrator, open **Settings &
-   public form**. Change the heading, introduction, labels, submission text,
+3. **Customize the form.** As the organization administrator, open **Settings**.
+   Change the heading, introduction, labels, submission text,
    confirmation message, logo, color, and supported behavior toggles. Save, then
    use **Preview Form**. A required name still does not require an account.
 4. **Create locations.** Open **Locations**, add `Pachaug State Forest`, and leave
@@ -121,8 +121,8 @@ set `MAIL_MAILER=log` to avoid sending real messages.
 5. **Create an optional event.** Open **Special events**, create `Fall Trail
    Cleanup 2026`, enter its date or date range, and leave it available on the
    public form. Its overview includes a preselected-event logging link.
-6. **Share the form.** Copy the public link from **Overview** or **Settings &
-   public form**: `/qcnemba/log-hours`. Existing `/qcnemba` bookmarks continue to
+6. **Share the form.** Copy the public link from **Overview** or **Settings**:
+   `/qcnemba/log-hours`. Existing `/qcnemba` bookmarks continue to
    work. Event links use `/qcnemba/log-hours?event=EVENT_ID`.
 7. **Submit without an account.** Open the link in a private browser, choose the
    forest, enter four hours and a non-future work date, and optionally select the
@@ -147,6 +147,12 @@ set `MAIL_MAILER=log` to avoid sending real messages.
 
 - Platform administrators manage organizations and access; organization
   administrators manage only their own active organization's data and settings.
+- The public homepage searches active organizations after two characters and
+  shows up to ten matches. Direct organization URLs remain available. Signed-in
+  users are directed to their workspace or volunteer history when available.
+- Overview activity counts submissions received in the last 30 days; reports
+  remain independently filterable. Organization administrators can manage
+  volunteer accounts and their own account, but not other administrators.
 - Events retain their historical entries when deactivated. Event dates describe
   the event; they do not prevent later entry of historical hours. Public entry
   dates cannot be in the future.

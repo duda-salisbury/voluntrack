@@ -13,19 +13,20 @@
 @php
     $adminUser = auth()->user();
     $adminOrg = $adminUser->organization;
-    $navigation = [
+    $navigation = $adminUser->isSuperAdmin() ? [
+        ['admin.overview', 'Overview', 'admin.overview'],
+        ['admin.organizations.index', 'Organizations', 'admin.organizations.*'],
+        ['admin.users.index', 'People & access', 'admin.users.*'],
+        ['admin.reports', 'Reporting', 'admin.reports,admin.dashboard,admin.entries.*'],
+    ] : [
         ['admin.overview', 'Overview', 'admin.overview'],
         ['admin.dashboard', 'Volunteer hours', 'admin.dashboard,admin.entries.*'],
         ['admin.locations.index', 'Locations', 'admin.locations.*'],
         ['admin.special-events.index', 'Special events', 'admin.special-events.*'],
-        ['admin.users.index', $adminUser->isSuperAdmin() ? 'People & access' : 'Volunteers & access', 'admin.users.*'],
+        ['admin.users.index', 'Volunteers & access', 'admin.users.*'],
         ['admin.reports', 'Reports', 'admin.reports'],
+        ['admin.branding.edit', 'Settings', 'admin.branding.*'],
     ];
-    if ($adminUser->isSuperAdmin()) {
-        $navigation[] = ['admin.organizations.index', 'Organizations', 'admin.organizations.*'];
-    } else {
-        $navigation[] = ['admin.branding.edit', 'Settings & public form', 'admin.branding.*'];
-    }
 @endphp
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header class="admin-topbar">

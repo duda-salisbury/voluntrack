@@ -30,6 +30,9 @@ class UserController extends Controller
         if ($orgId !== null && $user->organization_id !== $orgId) {
             abort(403);
         }
+        if ($orgId !== null && $user->is_admin && $user->id !== auth()->id()) {
+            abort(403, 'Only platform administrators can manage other administrators.');
+        }
     }
 
     // -------------------------------------------------------------------------

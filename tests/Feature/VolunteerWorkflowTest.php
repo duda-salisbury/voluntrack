@@ -539,4 +539,83 @@ class VolunteerWorkflowTest extends TestCase
         $this->withSession(['submitted_entry_id' => $entry->id])->get(route('org.hours.success', $organization))
             ->assertRedirect(route('org.hours.index', $organization));
     }
+
+    public function test_home_search_is_on_demand_active_only_and_limited(): void
+    {
+        for ($i = 0; $i < 12; $i++) {
+            Organization::create(['name' => sprintf('Community %02d', $i), 'slug' => 'community-'.$i, 'is_active' => true, 'accent_color' => '#245744']);
+        }
+        Organization::create(['name' => 'Community inactive', 'slug' => 'inactive', 'is_active' => false, 'accent_color' => '#245744']);
+
+        $this->get(route('home'))->assertOk()->assertDontSee('Community 00');
+        $this->get(route('home', ['q' => 'C']))->assertOk()->assertDontSee('Community 00');
+        $this->withHeaders(['HX-Request' => 'true'])->get(route('home', ['q' => 'Community']))
+            ->assertOk()->assertSee('Community 00')->assertSee('Community 09')
+            ->assertDontSee('Community 10')->assertDontSee('Community inactive');
+        $this->get(route('home', ['q' => 'nothing-matches']))->assertSee('No organizations found.');
+    }
+
+    public function test_home_routes_users_by_role_and_handles_unavailable_organizations(): void
+    {
+        $organization = $this->organization();
+        $admin = $this->administrator($organization);
+        $volunteer = User::factory()->create(['is_admin' => false, 'organization_id' => $organization->id]);
+        $this->actingAs($this->administrator())->get(route('home'))->assertRedirect(route('admin.overview'));
+        $this->actingAs($admin)->get(route('home'))->assertRedirect(route('admin.overview'));
+        $this->actingAs($volunteer)->get(route('home'))->assertRedirect(route('org.account.history', $organization));
+        $organization->update(['is_active' => false]);
+        $this->actingAs($admin->fresh())->get(route('home'))->assertOk()->assertSee('organization is unavailable');
+        $this->actingAs($volunteer->fresh())->get(route('home'))->assertOk()->assertSee('organization is unavailable');
+        $volunteer->update(['organization_id' => null]);
+        $this->actingAs($volunteer->fresh())->get(route('home'))->assertOk()->assertSee('organization is unavailable');
+    }
+
+    public function test_organization_admin_cannot_manage_another_administrator(): void
+    {
+        $organization = $this->organization();
+        $admin = $this->administrator($organization);
+        $otherAdmin = $this->administrator($organization);
+        $volunteer = User::factory()->create(['is_admin' => false, 'organization_id' => $organization->id]);
+        $this->actingAs($admin);
+        $this->get(route('admin.users.edit', $otherAdmin))->assertForbidden();
+        $this->put(route('admin.users.update', $otherAdmin), [
+            'name' => 'Changed', 'email' => $otherAdmin->email,
+            'password' => 'replacement-password', 'password_confirmation' => 'replacement-password',
+        ])->assertForbidden();
+        $this->delete(route('admin.users.destroy', $otherAdmin))->assertForbidden();
+        $this->get(route('admin.users.edit', $volunteer))->assertOk();
+        $this->get(route('admin.users.edit', $admin))->assertOk();
+        $this->actingAs($this->administrator())->get(route('admin.users.edit', $otherAdmin))->assertOk();
+    }
+
+    public function test_platform_organizations_are_filtered_and_paginated(): void
+    {
+        for ($i = 0; $i < 21; $i++) {
+            Organization::create(['name' => sprintf('Group %02d', $i), 'slug' => 'group-'.$i, 'is_active' => true, 'accent_color' => '#245744']);
+        }
+        Organization::create(['name' => 'Group inactive', 'slug' => 'group-inactive', 'is_active' => false, 'accent_color' => '#245744']);
+        $this->actingAs($this->administrator());
+        $this->get(route('admin.organizations.index'))->assertOk()->assertSee('Group 00')->assertDontSee('Group 20');
+        $this->get(route('admin.organizations.index', ['search' => 'inactive', 'status' => 'inactive']))
+            ->assertOk()->assertSee('Group inactive')->assertDontSee('Group 00');
+        $this->get(route('admin.organizations.index', ['search' => 'inactive', 'status' => 'active']))
+            ->assertOk()->assertDontSee('Group inactive');
+    }
+
+    public function test_overviews_show_scoped_recent_submissions_and_platform_access_needs(): void
+    {
+        $organization = $this->organization();
+        $other = $this->organization('other');
+        $location = $this->location($organization);
+        $this->entry($organization, $location, ['hours' => 3, 'name' => 'Recent person']);
+        $old = $this->entry($organization, $location, ['hours' => 8, 'name' => 'Earlier person']);
+        $old->forceFill(['created_at' => now()->subDays(31)])->save();
+        $this->entry($other, $this->location($other), ['hours' => 20, 'name' => 'Other person']);
+        $this->actingAs($this->administrator($organization))->get(route('admin.overview'))
+            ->assertOk()->assertViewHas('recentHours', 3.0)->assertViewHas('recentEntries', 1)
+            ->assertSee('Recent person')->assertDontSee('Earlier person')->assertDontSee('Other person');
+        $this->actingAs($this->administrator())->get(route('admin.overview'))
+            ->assertOk()->assertViewHas('platformStats', fn ($stats) => $stats['organizations'] === 2 && $stats['without_admins'] === 1)
+            ->assertSee($other->name);
+    }
 }

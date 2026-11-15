@@ -69,7 +69,7 @@ document.addEventListener('htmx:afterSwap', event => {
 });
 
 document.addEventListener('htmx:responseError', event => {
-    let message = 'Your change could not be saved. Please try again.';
+    let message = 'Your request could not be completed. Please try again.';
     if (event.detail.xhr.status === 422) {
         try {
             const response = JSON.parse(event.detail.xhr.responseText);

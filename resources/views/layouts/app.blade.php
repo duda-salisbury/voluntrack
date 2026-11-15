@@ -80,10 +80,14 @@
             </a>
             <div class="d-flex align-items-center gap-2">
                 @auth
-                    @if(auth()->user()->is_admin)
+                    @if(auth()->user()->isSuperAdmin() || (auth()->user()->is_admin && auth()->user()->organization?->is_active))
                         <a href="{{ route('admin.overview') }}" class="btn btn-sm btn-outline-primary">Workspace</a>
                     @elseif(isset($org) && $org && auth()->user()->organization_id === $org->id)
-                        <a href="{{ route('org.account.history', $org) }}" class="btn btn-sm btn-outline-secondary">My History</a>
+                        @if(request()->routeIs('org.account.history'))
+                            <a href="{{ route('org.hours.index', $org) }}" class="btn btn-sm btn-primary">Log hours</a>
+                        @else
+                            <a href="{{ route('org.account.history', $org) }}" class="btn btn-sm btn-outline-secondary">My history</a>
+                        @endif
                         <form method="POST" action="{{ route('org.account.logout', $org) }}" class="m-0">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-secondary">Sign Out</button>

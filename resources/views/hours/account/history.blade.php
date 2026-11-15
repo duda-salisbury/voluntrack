@@ -3,40 +3,31 @@
 @section('title', 'My Volunteer History')
 
 @section('content')
-<div class="container py-4">
+<div class="container volunteer-history py-4">
 
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
         <div>
-            <h1 class="h3 mb-0">My Volunteer History</h1>
-            <p class="text-muted mb-0">{{ $org->name }}</p>
+            <p class="eyebrow">{{ $org->name }} / Your impact</p>
+            <h1 class="mb-1">Your volunteer history</h1>
+            <p class="text-muted mb-0">Thank you for making a difference, {{ Str::before($user->name, ' ') }}.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('org.hours.index', $org) }}" class="btn btn-primary">Log Hours</a>
-            <form method="POST" action="{{ route('org.account.logout', $org) }}">
-                @csrf
-                <button type="submit" class="btn btn-outline-secondary">Sign Out</button>
-            </form>
+            <a href="{{ route('org.hours.index', $org) }}" class="btn btn-primary">Log hours</a>
         </div>
     </div>
 
     {{-- Summary card --}}
     <div class="row g-3 mb-4">
-        <div class="col-sm-4">
+        <div class="col-sm-6">
             <div class="card text-center py-3">
                 <div class="h2 mb-0 text-primary">{{ number_format($totalHours, 1) }}</div>
-                <div class="text-muted small">Total Hours</div>
+                <div class="text-muted small">All-time hours</div>
             </div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-sm-6">
             <div class="card text-center py-3">
                 <div class="h2 mb-0 text-primary">{{ $entries->total() }}</div>
-                <div class="text-muted small">Total Entries</div>
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="card text-center py-3">
-                <div class="h2 mb-0 text-primary">{{ $org->name }}</div>
-                <div class="text-muted small">Organization</div>
+                <div class="text-muted small">All-time submissions</div>
             </div>
         </div>
     </div>

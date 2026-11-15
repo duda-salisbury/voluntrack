@@ -69,13 +69,19 @@ class OrganizationController extends Controller
             ->with('success', "Administrator assigned. A secure password link was sent to {$user->email}.");
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->requireSuperAdmin();
 
-        $organizations = Organization::withCount(['locations', 'volunteerEntries'])
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:255',
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+        ]);
+        $organizations = Organization::withCount(['locations', 'volunteerEntries', 'users as administrators_count' => fn ($q) => $q->where('is_admin', true)])
+            ->when(! empty($validated['search']), fn ($q) => $q->where('name', 'like', '%'.trim($validated['search']).'%'))
+            ->when(! empty($validated['status']), fn ($q) => $q->where('is_active', $validated['status'] === 'active'))
             ->orderBy('name')
-            ->get();
+            ->paginate(20)->withQueryString();
 
         return view('admin.organizations.index', compact('organizations'));
     }

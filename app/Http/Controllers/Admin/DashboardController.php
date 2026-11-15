@@ -17,16 +17,29 @@ class DashboardController extends Controller
 {
     public function overview(Request $request): View
     {
-        $query = $this->filteredQuery($request);
-        $stats = $this->buildStats($query);
-        $recent = (clone $query)->with(['location', 'specialEvent', 'organization'])->latest()->limit(5)->get();
         $organization = auth()->user()->organization;
-        $locationCount = Location::when($organization, fn ($q) => $q->where('organization_id', $organization->id))->count();
-        $organizations = auth()->user()->isSuperAdmin()
-            ? Organization::withCount('users')->orderBy('name')->get()
-            : collect();
+        $recentQuery = VolunteerEntry::query()
+            ->when($organization, fn ($q) => $q->where('organization_id', $organization->id))
+            ->where('created_at', '>=', now()->subDays(30));
+        $recentEntries = (clone $recentQuery)->count();
+        $recentHours = (float) (clone $recentQuery)->sum('hours');
+        $recent = (clone $recentQuery)->with(['location', 'specialEvent', 'organization'])->latest()->limit(5)->get();
 
-        return view('admin.overview', compact('stats', 'recent', 'organization', 'locationCount', 'organizations'));
+        if ($organization) {
+            $locationCount = $organization->locations()->where('is_active', true)->count();
+
+            return view('admin.overview', compact('organization', 'locationCount', 'recentEntries', 'recentHours', 'recent'));
+        }
+
+        $withoutAdmins = Organization::whereDoesntHave('users', fn ($q) => $q->where('is_admin', true));
+        $platformStats = [
+            'organizations' => Organization::count(),
+            'active' => Organization::where('is_active', true)->count(),
+            'without_admins' => (clone $withoutAdmins)->count(),
+        ];
+        $attention = (clone $withoutAdmins)->orderBy('name')->limit(5)->get();
+
+        return view('admin.overview', compact('organization', 'platformStats', 'attention', 'recentEntries', 'recentHours', 'recent'));
     }
 
     public function index(Request $request): View

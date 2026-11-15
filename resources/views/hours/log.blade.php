@@ -3,11 +3,12 @@
 @section('title', 'Log Volunteer Hours')
 
 @section('content')
-<div class="container" style="max-width: 640px;">
+<div class="container volunteer-form">
     <div class="text-center mb-4">
         <p class="eyebrow">{{ $org->name }} / Every hour matters</p>
         <h1 class="mb-2">{{ $org->config->welcomeTitle }}</h1>
         <p class="text-muted">{{ $org->config->welcomeMessage }}</p>
+        <p class="small text-muted mb-0">No account required.</p>
     </div>
 
     <div id="form-container">
