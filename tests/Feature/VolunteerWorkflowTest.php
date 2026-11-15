@@ -662,10 +662,14 @@ class VolunteerWorkflowTest extends TestCase
         Organization::create(['name' => 'Community inactive', 'slug' => 'inactive', 'is_active' => false, 'accent_color' => '#245744']);
 
         $this->get(route('home'))->assertOk()->assertDontSee('Community 00')
-            ->assertSee('Find your organization.')->assertSee('Search organizations')->assertSee('Sign in')
+            ->assertSee('Track volunteer hours for your organization.')->assertSee('Log volunteer hours')->assertSee('Sign in')
             ->assertSee('Voluntrack helps organizations collect volunteer hours.')->assertSee('a js7y project')
             ->assertDontSee('Make every hour count')->assertDontSee('Your community is waiting');
         $this->get(route('home', ['q' => 'C']))->assertOk()->assertDontSee('Community 00');
+        $this->get(route('home', ['q' => 'Community']))->assertOk()
+            ->assertSee('Track volunteer hours for your organization.')->assertSee('Community 00')
+            ->assertSee('href="'.route('org.hours.index', ['org' => 'community-0']).'"', false)
+            ->assertDontSee('Community 10')->assertDontSee('Community inactive');
         $this->withHeaders(['HX-Request' => 'true'])->get(route('home', ['q' => 'Community']))
             ->assertOk()->assertSee('Community 00')->assertSee('Community 09')->assertSee('Log hours')
             ->assertDontSee('Community 10')->assertDontSee('Community inactive');
@@ -680,7 +684,8 @@ class VolunteerWorkflowTest extends TestCase
         $this->actingAs($this->administrator())->get(route('home'))->assertRedirect(route('admin.overview'));
         $this->actingAs($admin)->get(route('home'))->assertRedirect(route('admin.overview'));
         $this->actingAs($volunteer)->get(route('home'))->assertRedirect(route('org.account.history', $organization));
-        $this->actingAs($admin)->get(route('home', ['find' => 1]))->assertOk()->assertSee('My profile')->assertSee('My organizations');
+        $this->actingAs($admin)->get(route('home', ['find' => 1]))->assertOk()->assertSee('My profile')->assertSee('My organizations')
+            ->assertSee('name="find" value="1"', false);
         $this->withHeaders(['HX-Request' => 'true'])->get(route('home', ['find' => 1, 'q' => 'NEMBA']))
             ->assertOk()->assertSee('QC NEMBA')->assertSee('Log hours');
         $this->flushHeaders();
@@ -694,9 +699,9 @@ class VolunteerWorkflowTest extends TestCase
     public function test_home_shows_features_and_onboarding_after_organization_search(): void
     {
         $this->get(route('home'))->assertOk()
-            ->assertSeeInOrder(['Search organizations', 'Volunteer tracking, without the busywork.', 'Easy hour logging',
-                'Events and locations', 'Reports and exports', 'Volunteer management', 'Bring your organization to Voluntrack',
-                'Free during early access. No payment information required.', 'Get Started'])
+            ->assertSeeInOrder(['Log volunteer hours', 'Log hours',
+                'Events &amp; locations', 'Reports &amp; exports', 'Volunteer management', 'Use Voluntrack for your organization.',
+                'Free during early access.', 'Get started'], false)
             ->assertSee('href="'.route('organization-requests.create').'"', false);
     }
 
