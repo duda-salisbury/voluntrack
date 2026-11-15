@@ -5,8 +5,8 @@
 @section('content')
 <div class="container" style="max-width: 480px;">
     <div class="text-center mb-4">
-        <h1 class="h3 mb-1">Admin Login</h1>
-        <p class="text-muted">Administrator access only</p>
+        <h1 class="h3 mb-1">{{ session()->has('organization_request_draft') ? 'Sign in to continue' : 'Admin Login' }}</h1>
+        <p class="text-muted">{{ session()->has('organization_request_draft') ? 'Your request details are saved for this session.' : 'Administrator access only' }}</p>
     </div>
 
     <div class="card">
@@ -74,6 +74,7 @@
                     <a href="{{ route('home') }}" class="btn btn-secondary">
                         Back to Public Form
                     </a>
+                    @if(session()->has('organization_request_draft'))<a href="{{ route('organization-requests.register') }}" class="text-center">Create an account instead</a>@endif
                 </div>
             </form>
         </div>

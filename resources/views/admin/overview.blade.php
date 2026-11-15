@@ -13,7 +13,7 @@
             <div class="col-sm-6"><div class="card metric-card"><div class="card-body"><span class="text-muted small">Submissions received</span><div class="fs-2 fw-bold">{{ number_format($recentEntries) }}</div></div></div></div>
         </div>
         @if($locationCount === 0)
-            <section class="setup-notice mb-4"><div><p class="eyebrow mb-1">Getting ready</p><h2 class="h5">Prepare your volunteer form</h2><p class="text-muted mb-2">Add an active location before volunteers can submit hours.</p><div class="d-flex flex-wrap gap-3 small"><a href="{{ route('admin.special-events.create') }}">Create an optional event</a><a href="{{ route('admin.users.index') }}">Invite an administrator</a><a href="#share-form">Share your form</a></div></div><a href="{{ route('admin.locations.create') }}" class="btn btn-primary">Add a location</a></section>
+            <section class="setup-notice mb-4"><div><p class="eyebrow mb-1">Getting ready</p><h2 class="h5">Prepare your volunteer form</h2><p class="text-muted mb-2">Review your details, add an active location, and share your form.</p><div class="d-flex flex-wrap gap-3 small"><a href="{{ route('admin.branding.edit') }}">Review organization details</a><a href="#share-form">Share your form</a><a href="{{ route('admin.special-events.create') }}">Create an optional event</a><a href="{{ route('admin.users.index') }}">Invite an administrator</a></div></div><a href="{{ route('admin.locations.create') }}" class="btn btn-primary">Add a location</a></section>
         @endif
         <section id="share-form" class="share-panel mb-4">
             <p class="eyebrow">Your public form</p><h2 class="h4">Make it easy to show up.</h2><p class="text-muted">Share this link anywhere your volunteers gather. No account required.</p>
@@ -30,6 +30,7 @@
         </section>
     @else
         <div class="page-heading"><div><p class="eyebrow">Platform administration</p><h1>Platform overview</h1><p class="text-muted mb-0">Help organizations turn community effort into lasting impact.</p></div><a class="btn btn-primary" href="{{ route('admin.organizations.create') }}">Create organization</a></div>
+        @if($pendingRequests > 0)<div class="alert alert-info"><a href="{{ route('admin.organization-requests.index', ['status' => 'pending']) }}" class="alert-link">{{ number_format($pendingRequests) }} organization {{ Str::plural('request', $pendingRequests) }}</a> awaiting review.</div>@endif
         <div class="row g-3 mb-4">
             @foreach([['Organizations', $platformStats['organizations']], ['Active organizations', $platformStats['active']], ['Without administrators', $platformStats['without_admins']], ['Submissions / last 30 days', $recentEntries]] as [$label, $value])
                 <div class="col-6 col-xl-3"><div class="card metric-card h-100"><div class="card-body"><span class="text-muted small">{{ $label }}</span><div class="fs-2 fw-bold">{{ number_format($value) }}</div></div></div></div>

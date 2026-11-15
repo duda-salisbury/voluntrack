@@ -41,6 +41,7 @@
             <div id="org-results" class="landing-results" aria-live="polite">
                 @include('home-results')
             </div>
+            <div class="border-top mt-4 pt-3"><h2 class="h6 mb-1">Want to use Voluntrack for your organization?</h2><p class="small text-muted mb-1">Set up volunteer hour tracking for your group.</p><a href="{{ route('organization-requests.create') }}">Get started &rarr;</a></div>
         </div>
     </section>
 </div>

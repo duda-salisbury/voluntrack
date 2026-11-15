@@ -21,6 +21,7 @@ locations; existing events continue to allow any location. Existing hours,
 locations, accounts, and organization settings are retained. Back up your database
 before production migrations as usual.
 Do not use `migrate:fresh` against existing data.
+The organization-request migration also creates the request and review-lock tables.
 
 Set `APP_URL` to the public HTTPS origin. Configure a working Laravel mail
 transport and `MAIL_FROM_ADDRESS` before sending invitations or password-reset
@@ -63,6 +64,26 @@ changing their password or privileges. If email delivery fails after creation,
 the command fails explicitly but preserves the created account; correct the mail
 configuration and request a fresh link at `/account/password/forgot`, rather
 than rerunning account creation. A log/array mailer does not deliver real email.
+
+### Organization requests
+
+The homepage's **Get started** link lets an existing or new account request a
+new organization or administrator access to an existing one. Applicants can
+check their requests from the account menu. Existing-organization requests use
+the organization's exact name and do not grant access on submission.
+
+Platform administrators review requests under **Organization requests**.
+Verify the applicant's authority before approving access to an existing
+organization. Potential name and website-domain matches are warnings, not proof
+of identity; existing organization records do not otherwise store websites, so
+domain comparisons use websites from previously approved requests. A matching
+existing organization blocks new-organization approval: resolve the match and,
+when appropriate, ask the applicant to request access instead.
+
+Request notifications use the configured mail transport synchronously. A failed
+notification leaves the request or decision saved and displays an error. Review
+pending requests in the platform workspace; decision emails can be retried from
+the request's review screen.
 
 ### Resend email delivery
 

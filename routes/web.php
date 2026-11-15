@@ -4,6 +4,9 @@ use App\Http\Controllers\Admin\BrandingController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\OrganizationRequestController;
+use App\Http\Controllers\OrganizationRequestRegistrationController;
+use App\Http\Controllers\Admin\OrganizationRequestController as AdminOrganizationRequestController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EntryController;
 use App\Http\Controllers\Admin\LocationController;
@@ -32,6 +35,13 @@ Route::get('/login',  [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+Route::get('/my-account/organization-requests/new', [OrganizationRequestController::class, 'create'])->name('organization-requests.create');
+Route::get('/my-account/organization-requests/continue', [OrganizationRequestController::class, 'authenticate'])->name('organization-requests.authenticate');
+Route::get('/my-account/organization-requests/register', [OrganizationRequestRegistrationController::class, 'create'])->name('organization-requests.register');
+Route::post('/my-account/organization-requests/register', [OrganizationRequestRegistrationController::class, 'store'])->middleware('throttle:6,1')->name('organization-requests.register.store');
+Route::post('/my-account/organization-requests', [OrganizationRequestController::class, 'store'])->middleware('throttle:6,1')->name('organization-requests.store');
+Route::get('/my-account/organization-requests', [OrganizationRequestController::class, 'index'])->middleware('auth')->name('organization-requests.index');
+
 Route::middleware('auth')->prefix('my-account')->name('account.')->group(function () {
     Route::get('/profile', [AccountController::class, 'profile'])->name('profile');
     Route::put('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');
@@ -54,6 +64,10 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::get('/reports/export', [DashboardController::class, 'export'])->name('reports.export');
     Route::get('/volunteer-activity', [DashboardController::class, 'volunteerActivity'])->name('volunteer-activity');
     Route::get('/activity', [ActivityController::class, 'index'])->name('activity.index');
+    Route::get('/organization-requests', [AdminOrganizationRequestController::class, 'index'])->name('organization-requests.index');
+    Route::get('/organization-requests/{organizationRequest}', [AdminOrganizationRequestController::class, 'show'])->name('organization-requests.show');
+    Route::post('/organization-requests/{organizationRequest}/decision', [AdminOrganizationRequestController::class, 'decide'])->middleware('throttle:30,1')->name('organization-requests.decide');
+    Route::post('/organization-requests/{organizationRequest}/resend', [AdminOrganizationRequestController::class, 'resend'])->middleware('throttle:6,1')->name('organization-requests.resend');
 
     // Entries
     Route::get('entries/group', [EntryController::class, 'createGroup'])->name('entries.group');

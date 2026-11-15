@@ -19,6 +19,7 @@
         @endif
         <li><a class="dropdown-item" href="{{ route('account.hours') }}">My hours</a></li>
         <li><a class="dropdown-item" href="{{ route('account.organizations') }}">My organizations</a></li>
+        <li><a class="dropdown-item" href="{{ route('organization-requests.index') }}">My organization requests</a></li>
         @foreach($accountUser->organizations()->where('organizations.is_active', true)->orderBy('name')->get() as $switchOrg)
             <li><form method="POST" action="{{ route('account.organizations.switch', $switchOrg) }}">@csrf<button class="dropdown-item small">{{ $switchOrg->name }} · {{ $switchOrg->pivot->role === 'admin' ? 'Administrator' : 'Volunteer' }}</button></form></li>
         @endforeach

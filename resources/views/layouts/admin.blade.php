@@ -16,6 +16,7 @@
     $navigation = $adminUser->isPlatformWorkspace() ? [
         ['admin.overview', 'Overview', 'admin.overview'],
         ['admin.organizations.index', 'Organizations', 'admin.organizations.*'],
+        ['admin.organization-requests.index', 'Organization requests', 'admin.organization-requests.*'],
         ['admin.users.index', 'People & access', 'admin.users.*'],
         ['admin.activity.index', 'Activity', 'admin.activity.*'],
         ['admin.reports', 'Reporting', 'admin.reports,admin.dashboard,admin.entries.*'],

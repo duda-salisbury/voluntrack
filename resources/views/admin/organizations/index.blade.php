@@ -2,7 +2,7 @@
 @section('title', 'Organizations')
 @section('content')
 <div class="container-fluid workspace">
-    <div class="page-heading"><div><p class="eyebrow">Platform / Organizations</p><h1>Organizations</h1><p class="text-muted mb-0">Find organizations and manage their access.</p></div><a href="{{ route('admin.organizations.create') }}" class="btn btn-primary">Create organization</a></div>
+    <div class="page-heading"><div><p class="eyebrow">Platform / Organizations</p><h1>Organizations</h1><p class="text-muted mb-0">Find organizations and manage their access.</p></div><div class="d-flex gap-2 flex-wrap"><a href="{{ route('admin.organization-requests.index') }}" class="btn btn-outline-secondary">Organization requests</a><a href="{{ route('admin.organizations.create') }}" class="btn btn-primary">Create organization</a></div></div>
     <form method="GET" action="{{ route('admin.organizations.index') }}" class="card mb-4"><div class="card-body"><div class="row g-3 align-items-end">
         <div class="col-md-6"><label for="org-name" class="form-label">Organization name</label><input id="org-name" type="search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Search by name"></div>
         <div class="col-md-3"><label for="org-status" class="form-label">Status</label><select id="org-status" name="status" class="form-select"><option value="">All statuses</option><option value="active" @selected(request('status') === 'active')>Active</option><option value="inactive" @selected(request('status') === 'inactive')>Inactive</option></select></div>

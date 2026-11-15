@@ -16,7 +16,7 @@ class AdminMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if (! auth()->check()) {
-            return redirect()->route('login')
+            return redirect()->guest(route('login'))
                 ->with('error', 'You must be an administrator to access this area.');
         }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Models\Organization;
+use App\Models\OrganizationRequest;
 use App\Models\SpecialEvent;
 use App\Models\User;
 use App\Models\VolunteerEntry;
@@ -40,8 +41,9 @@ class DashboardController extends Controller
             'without_admins' => (clone $withoutAdmins)->count(),
         ];
         $attention = (clone $withoutAdmins)->orderBy('name')->limit(5)->get();
+        $pendingRequests = OrganizationRequest::where('status', 'pending')->count();
 
-        return view('admin.overview', compact('organization', 'platformStats', 'attention', 'recentEntries', 'recentHours', 'recent'));
+        return view('admin.overview', compact('organization', 'platformStats', 'attention', 'pendingRequests', 'recentEntries', 'recentHours', 'recent'));
     }
 
     public function index(Request $request): View
