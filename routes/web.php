@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BrandingController;
+use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -52,6 +53,7 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
     Route::get('/reports/export', [DashboardController::class, 'export'])->name('reports.export');
     Route::get('/volunteer-activity', [DashboardController::class, 'volunteerActivity'])->name('volunteer-activity');
+    Route::get('/activity', [ActivityController::class, 'index'])->name('activity.index');
 
     // Entries
     Route::get('entries/group', [EntryController::class, 'createGroup'])->name('entries.group');

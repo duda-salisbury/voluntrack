@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Models\Organization;
 use App\Models\SpecialEvent;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +75,12 @@ class SpecialEventController extends Controller
         $data['organization_id'] = $specialEvent->organization_id;
         DB::transaction(function () use ($specialEvent, $data, $locationIds) {
             $specialEvent->update($data);
-            $specialEvent->locations()->sync($locationIds);
+            $changes = $specialEvent->locations()->sync($locationIds);
+            if (! $specialEvent->wasChanged() && ($changes['attached'] || $changes['detached'])) {
+                Audit::record('event.updated', 'event', 'Updated event locations', actorId: auth()->id(),
+                    organizationId: $specialEvent->organization_id, subjectType: 'event', subjectId: $specialEvent->id,
+                    metadata: ['changes' => ['Event locations']]);
+            }
         });
 
         return redirect()->route('admin.special-events.show', $specialEvent)

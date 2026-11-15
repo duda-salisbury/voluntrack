@@ -1,10 +1,12 @@
 <?php
 
 use App\Models\User;
+use App\Models\AuditEvent;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Command\Command;
@@ -13,6 +15,14 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+Artisan::command('audit:prune', function () {
+    AuditEvent::where('created_at', '<', now()->subDays(30))->whereNotNull('ip_address')->update(['ip_address' => null]);
+    $removed = AuditEvent::where('created_at', '<', now()->subDays(365))->delete();
+    $this->info("Removed {$removed} expired audit events.");
+})->purpose('Remove expired audit events and authentication IP addresses');
+
+Schedule::command('audit:prune')->daily()->withoutOverlapping();
 
 Artisan::command('createAdmin {--name= : Administrator name} {--email= : Administrator email}', function () {
     $interactive = ! $this->option('no-interaction') && $this->input->isInteractive();

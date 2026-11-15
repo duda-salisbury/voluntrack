@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Volunteer;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\Audit;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,6 +55,8 @@ class AuthController extends Controller
                 'password' => Hash::make($validated['password']),
             ]);
             $user->organizations()->attach($org->id, ['role' => 'volunteer']);
+            Audit::record('membership.added', 'membership', 'Joined an organization as a volunteer',
+                actorId: $user->id, organizationId: $org->id, subjectUserId: $user->id);
             return $user;
         });
 

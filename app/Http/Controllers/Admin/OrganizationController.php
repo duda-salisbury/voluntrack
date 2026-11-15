@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\AdministratorInvitation;
 use App\Notifications\OrganizationAccessGranted;
 use App\Support\OrganizationSettings;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -49,8 +50,9 @@ class OrganizationController extends Controller
         if ($user && ! $actor->isSuperAdmin() && $user->hasOrganizationRole($organization->id, 'admin')) {
             return back()->withErrors(['email' => 'Only platform administrators can manage another administrator.'])->withInput();
         }
+        $previousRole = $user?->organizations()->where('organizations.id', $organization->id)->first()?->pivot->role;
 
-        $user = DB::transaction(function () use ($user, $validated, $organization) {
+        $user = DB::transaction(function () use ($user, $validated, $organization, $actor, $previousRole) {
             if (! $user) {
                 $user = User::create([...$validated, 'password' => Str::random(64)]);
                 $user->organizations()->attach($organization->id, ['role' => 'admin']);
@@ -64,6 +66,15 @@ class OrganizationController extends Controller
             } else {
                 $user->organizations()->syncWithoutDetaching([$organization->id => ['role' => 'admin']]);
                 $user->notify(new OrganizationAccessGranted($organization));
+            }
+            Audit::record('membership.admin_invited', 'membership', 'Invited an organization administrator',
+                actorId: $actor->id, organizationId: $organization->id, subjectUserId: $user->id);
+            if ($previousRole === null) {
+                Audit::record('membership.added', 'membership', 'Added an administrator membership',
+                    actorId: $actor->id, organizationId: $organization->id, subjectUserId: $user->id);
+            } elseif ($previousRole !== 'admin') {
+                Audit::record('membership.role_changed', 'membership', 'Changed membership role to Administrator',
+                    actorId: $actor->id, organizationId: $organization->id, subjectUserId: $user->id);
             }
             return $user;
         });

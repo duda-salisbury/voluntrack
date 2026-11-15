@@ -161,6 +161,13 @@ set `MAIL_MAILER=log` to avoid sending real messages.
   remain independently filterable. Organization administrators manage
   memberships, not another person's global account. Only platform administrators
   can remove another administrator's membership.
+- Activity logs keep meaningful server-side actions for 365 days. Platform
+  administrators can see authentication activity; organization administrators
+  see only their organization's activity. Authentication IP addresses are
+  removed after 30 days; passwords, tokens, notes, and user agents are not logged.
+  Configure Laravel's scheduler to run `php artisan schedule:run` every minute
+  so the daily `audit:prune` task enforces retention. Last sign-in in account
+  management reflects the retained activity window.
 - Group entry saves up to 50 ordinary contributions together in a transaction.
   Names do not create or link accounts. Volunteer activity groups only
   account-linked records; unlinked contributions remain individual records.

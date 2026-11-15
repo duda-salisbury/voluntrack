@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\SpecialEvent;
 use App\Models\User;
 use App\Models\VolunteerEntry;
+use App\Support\Audit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -94,8 +95,13 @@ class DashboardController extends Controller
     public function export(Request $request): StreamedResponse
     {
         $query = $this->filteredQuery($request)->with(['organization', 'location', 'specialEvent']);
+        $actorId = $request->user()->id;
+        $orgId = $request->user()->adminOrganizationId();
+        if ($orgId === null && $request->filled('organization_id')) {
+            $orgId = Organization::findOrFail($request->input('organization_id'))->id;
+        }
 
-        return response()->streamDownload(function () use ($query) {
+        return response()->streamDownload(function () use ($query, $actorId, $orgId) {
             $output = fopen('php://output', 'w');
             fputcsv($output, ['Organization', 'Volunteer', 'Work date', 'Location', 'Special event', 'Hours', 'Matching', 'Source', 'Notes'], ',', '"', '');
             foreach ($query->lazyById(200) as $entry) {
@@ -114,6 +120,8 @@ class DashboardController extends Controller
                 fputcsv($output, $row, ',', '"', '');
             }
             fclose($output);
+            Audit::record('report.exported', 'report', 'Exported a volunteer hours report',
+                actorId: $actorId, organizationId: $orgId);
         }, 'voluntrack-contributions-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 

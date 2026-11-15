@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Models\AuditEvent;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +15,10 @@ class AccountController extends Controller
 {
     public function profile(Request $request): View
     {
-        return view('account.profile', ['user' => $request->user(), 'memberships' => $request->user()->organizations()->orderBy('name')->get()]);
+        $lastLogin = AuditEvent::where('actor_id', $request->user()->id)->where('event_type', 'auth.login')
+            ->where('created_at', '>=', now()->subDays(365))->latest('created_at')->value('created_at');
+
+        return view('account.profile', ['user' => $request->user(), 'memberships' => $request->user()->organizations()->orderBy('name')->get(), 'lastLogin' => $lastLogin]);
     }
 
     public function updateProfile(Request $request): RedirectResponse
@@ -30,6 +35,9 @@ class AccountController extends Controller
             $user->email_verified_at = null;
         }
         $user->save();
+        if ($user->wasChanged(['name', 'email'])) {
+            Audit::record('account.profile_updated', 'account', 'Updated account profile', actorId: $user->id, subjectUserId: $user->id);
+        }
         return back()->with('success', 'Your profile has been updated.');
     }
 
@@ -37,6 +45,7 @@ class AccountController extends Controller
     {
         $data = $request->validate(['current_password' => 'required|current_password', 'password' => 'required|string|min:8|confirmed']);
         $request->user()->update(['password' => $data['password']]);
+        Audit::record('account.password_changed', 'account', 'Changed account password', actorId: $request->user()->id, subjectUserId: $request->user()->id);
         return back()->with('success', 'Your password has been updated.');
     }
 
@@ -75,10 +84,14 @@ class AccountController extends Controller
     public function join(Request $request, Organization $organization): RedirectResponse
     {
         abort_unless($organization->is_active, 404);
-        DB::table('organization_user')->insertOrIgnore([
+        $added = DB::table('organization_user')->insertOrIgnore([
             'organization_id' => $organization->id, 'user_id' => $request->user()->id,
             'role' => 'volunteer', 'created_at' => now(), 'updated_at' => now(),
         ]);
+        if ($added) {
+            Audit::record('membership.added', 'membership', 'Joined an organization as a volunteer', actorId: $request->user()->id,
+                organizationId: $organization->id, subjectUserId: $request->user()->id);
+        }
         return redirect()->route('org.hours.index', $organization)->with('success', 'Organization added to your account.');
     }
 

@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\Organization;
 use App\Models\VolunteerEntry;
 use App\Rules\EventLocation;
+use App\Support\Audit;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -94,13 +95,17 @@ class VolunteerHourController extends Controller
 
         $entry = DB::transaction(function () use ($validated, $org) {
             if (auth()->check()) {
-                DB::table('organization_user')->insertOrIgnore([
+                $added = DB::table('organization_user')->insertOrIgnore([
                     'user_id' => auth()->id(),
                     'organization_id' => $org->id,
                     'role' => 'volunteer',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+                if ($added) {
+                    Audit::record('membership.added', 'membership', 'Joined an organization as a volunteer',
+                        actorId: auth()->id(), organizationId: $org->id, subjectUserId: auth()->id());
+                }
             }
             return VolunteerEntry::create($validated);
         });

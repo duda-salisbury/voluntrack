@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Models\User;
+use App\Models\AuditEvent;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -20,6 +22,9 @@ class UserController extends Controller
     {
         $orgId = $request->user()->adminOrganizationId();
         $users = User::with(['organizations' => fn ($q) => $q->when($orgId, fn ($q) => $q->where('organizations.id', $orgId))])
+            ->when($request->user()->isPlatformWorkspace(), fn ($q) => $q->addSelect(['last_login_at' => AuditEvent::select('created_at')
+                ->whereColumn('actor_id', 'users.id')->where('event_type', 'auth.login')->where('created_at', '>=', now()->subDays(365))
+                ->latest('created_at')->limit(1)]))
             ->when($orgId, fn ($q) => $q->whereHas('organizations', fn ($q) => $q->where('organizations.id', $orgId)))
             ->when($request->filled('search'), fn ($q) => $q->where(fn ($q) => $q->where('name', 'like', '%'.$request->input('search').'%')->orWhere('email', 'like', '%'.$request->input('search').'%')))
             ->orderBy('name')->paginate(30)->withQueryString();
@@ -55,6 +60,8 @@ class UserController extends Controller
             DB::transaction(function () use ($data, $orgId) {
                 $user = User::create(['name' => $data['name'], 'email' => $data['email'], 'password' => Str::random(64)]);
                 $user->organizations()->attach($orgId, ['role' => 'volunteer']);
+                Audit::record('membership.added', 'membership', 'Added a volunteer membership',
+                    actorId: auth()->id(), organizationId: $orgId, subjectUserId: $user->id);
                 $status = Password::sendResetLink(['email' => $user->email]);
                 if ($status !== Password::RESET_LINK_SENT) {
                     throw ValidationException::withMessages(['email' => __($status)]);
@@ -62,6 +69,8 @@ class UserController extends Controller
             });
         } else {
             $user->organizations()->attach($orgId, ['role' => 'volunteer']);
+            Audit::record('membership.added', 'membership', 'Added a volunteer membership',
+                actorId: auth()->id(), organizationId: $orgId, subjectUserId: $user->id);
         }
 
         return redirect()->route('admin.users.index')->with('success', 'Volunteer membership added.');
@@ -90,6 +99,8 @@ class UserController extends Controller
         abort_if($user->id === $actor->id, 403, 'You cannot remove your own administrative membership.');
         abort_if(! $actor->isPlatformWorkspace() && $user->hasOrganizationRole($orgId, 'admin'), 403, 'Only platform administrators can remove another administrator.');
         $user->organizations()->detach($orgId);
+        Audit::record('membership.removed', 'membership', 'Removed an organization membership',
+            actorId: $actor->id, organizationId: $orgId, subjectUserId: $user->id);
 
         return redirect()->route('admin.users.index')->with('success', 'Membership removed. The account and its recorded hours are unchanged.');
     }
