@@ -45,7 +45,7 @@ class OrganizationRequestWorkflowTest extends TestCase
     public function test_guest_can_register_and_submit_without_losing_the_draft(): void
     {
         $admin = User::factory()->create(['is_platform_admin' => true]);
-        $this->get(route('home'))->assertOk()->assertSee('Get started');
+        $this->get(route('home'))->assertOk()->assertSee('Get Started');
         $this->post(route('organization-requests.store'), $this->details())
             ->assertRedirect(route('organization-requests.authenticate'));
         $this->assertDatabaseCount('organization_requests', 0);

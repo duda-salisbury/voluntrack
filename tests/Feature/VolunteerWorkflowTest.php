@@ -691,6 +691,15 @@ class VolunteerWorkflowTest extends TestCase
         $this->actingAs($volunteer->fresh())->get(route('home'))->assertOk()->assertSee('organization is unavailable');
     }
 
+    public function test_home_shows_features_and_onboarding_after_organization_search(): void
+    {
+        $this->get(route('home'))->assertOk()
+            ->assertSeeInOrder(['Search organizations', 'Volunteer tracking, without the busywork.', 'Easy hour logging',
+                'Events and locations', 'Reports and exports', 'Volunteer management', 'Bring your organization to Voluntrack',
+                'Free during early access. No payment information required.', 'Get Started'])
+            ->assertSee('href="'.route('organization-requests.create').'"', false);
+    }
+
     public function test_organization_admin_cannot_manage_another_administrator(): void
     {
         $organization = $this->organization();
