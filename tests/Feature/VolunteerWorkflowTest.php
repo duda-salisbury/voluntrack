@@ -254,7 +254,47 @@ class VolunteerWorkflowTest extends TestCase
             ->post(route('org.hours.store', $organization), $this->submission($location, ['hours' => 25, 'name' => 'Keep my name']))
             ->assertOk()->assertSee('Keep my name')->assertSee('A few details need your attention');
         $this->followingRedirects()->withHeader('HX-Request', 'true')->post(route('org.hours.store', $organization), $this->submission($location))
-            ->assertOk()->assertSee('id="form-container"', false)->assertSee('Log Another Entry')->assertSee('Create an optional account');
+            ->assertOk()->assertSee('id="form-container"', false)->assertSee('Log More Hours')->assertSee('Create an optional account');
+        $this->withHeader('HX-Request', 'true')->get($url)
+            ->assertOk()->assertSeeInOrder(['id="form-container"', 'Log Your Volunteer Hours'], false);
+    }
+
+    public function test_event_form_prefills_event_date_and_single_location_and_preserves_overrides(): void
+    {
+        $organization = $this->organization();
+        $location = $this->location($organization);
+        $event = $this->event($organization);
+        $event->locations()->attach($location);
+        $url = route('org.hours.index', ['org' => $organization, 'event' => $event->id]);
+        $this->get($url)->assertOk()
+            ->assertSee('value="'.$location->id.'" selected', false)
+            ->assertSee('value="2026-10-01" max=', false)
+            ->assertSee('data-event-date="2026-10-01"', false);
+        $this->withSession(['_old_input' => [
+            'special_event_id' => $event->id, 'location_id' => $location->id, 'volunteered_at' => '2026-09-30',
+        ]])->get($url)->assertOk()->assertSee('value="2026-09-30" max=', false);
+        $this->post(route('org.hours.store', $organization), [
+            'location_id' => $location->id, 'special_event_id' => $event->id,
+            'volunteered_at' => '2026-09-30', 'duration_hours' => 2, 'duration_minutes' => 30,
+        ])->assertSessionHasNoErrors();
+        $this->get(route('org.hours.success', $organization))->assertOk()
+            ->assertSee('2 h 30 min')->assertSee($organization->name)->assertSee('Sep 30, 2026')
+            ->assertSee($location->name)->assertSee($event->name)->assertSee('Log More Hours');
+    }
+
+    public function test_signed_in_logging_uses_account_name_even_when_organization_requires_one(): void
+    {
+        $organization = $this->organization();
+        $organization->update(['settings' => ['form' => ['require_name' => true]]]);
+        $location = $this->location($organization);
+        $user = User::factory()->create(['name' => 'Account Volunteer']);
+        $this->actingAs($user)->get(route('org.hours.index', $organization))->assertOk()
+            ->assertDontSee('name="name"', false)->assertDontSee('Join this organization');
+        $this->assertDatabaseMissing('organization_user', ['user_id' => $user->id, 'organization_id' => $organization->id]);
+        $this->post(route('org.hours.store', $organization), $this->submission($location, ['name' => 'Different name']))
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('volunteer_entries', ['volunteer_user_id' => $user->id, 'name' => 'Account Volunteer']);
+        $this->assertDatabaseHas('organization_user', ['user_id' => $user->id, 'organization_id' => $organization->id, 'role' => 'volunteer']);
     }
 
     public function test_public_form_rejects_cross_org_inactive_and_deleted_locations_or_events(): void

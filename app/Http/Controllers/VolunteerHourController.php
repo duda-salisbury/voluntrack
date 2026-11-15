@@ -41,6 +41,10 @@ class VolunteerHourController extends Controller
         abort_if(! $org->is_active, 404);
         $config = $org->config;
 
+        if (auth()->check()) {
+            $request->merge(['name' => auth()->user()->name]);
+        }
+
         if ($request->has('duration_hours') || $request->has('duration_minutes')) {
             $duration = $request->validate([
                 'duration_hours' => 'nullable|integer|min:0|max:24',
@@ -84,9 +88,6 @@ class VolunteerHourController extends Controller
 
         if (auth()->check()) {
             $validated['volunteer_user_id'] = auth()->id();
-            if (empty($validated['name'])) {
-                $validated['name'] = auth()->user()->name;
-            }
             // Registered users don't need the anonymous token
             unset($validated['anon_token']);
         }

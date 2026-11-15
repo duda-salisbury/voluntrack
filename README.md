@@ -123,8 +123,10 @@ set `MAIL_MAILER=log` to avoid sending real messages.
    Cleanup 2026`, enter its date or date range, and leave it available on the
    public form. Choose one or more event locations, or **Location not important**
    to allow any organization location. New event hours must use an assigned
-   location; a single assigned location is selected automatically on hour-entry
-   forms. Existing hours are not changed. Its overview includes a
+   location; a single assigned location and the event start date are selected
+   automatically on the public form. Volunteers can change the date or select
+   another assigned location; future dates cannot be submitted. Existing hours
+   are not changed. Its overview includes a
    preselected-event logging link.
 6. **Share the form.** Copy the public link or display its QR code from **Overview**:
    `/qcnemba/log-hours`. Existing `/qcnemba` bookmarks continue to
@@ -132,7 +134,7 @@ set `MAIL_MAILER=log` to avoid sending real messages.
 7. **Submit without an account.** Open the link in a private browser, choose the
    forest, enter hours and minutes and a non-future work date, and optionally select the
    event. Leave the name blank for anonymous logging. The confirmation shows the
-   recorded details and offers **Log Another Entry**.
+   recorded details and offers **Log More Hours**.
 8. **Submit ordinary hours.** Log another two hours with **Everyday volunteering /
    no event** selected. Events are never required. Creating an account remains
    optional; registered volunteers can view their own history.

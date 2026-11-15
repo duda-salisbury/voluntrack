@@ -61,7 +61,7 @@
 
     @stack('styles')
 </head>
-<body class="public-shell">
+<body class="public-shell @yield('body-class')">
     <a class="skip-link" href="#main-content">Skip to content</a>
     <nav class="navbar bg-body-tertiary border-bottom mb-4">
         <div class="container">

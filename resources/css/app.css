@@ -108,7 +108,19 @@ a { text-underline-offset: .18em; }
 .organization-avatar img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
 .search-loading { margin-top: 1rem; color: var(--vt-muted); font-size: .875rem; }
 .landing-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; padding: 2rem 0; color: var(--vt-muted); font-size: .85rem; }
-.volunteer-form { max-width: 640px; }
+.volunteer-form { max-width: 860px; }
+.volunteer-log-page { --bs-body-bg: #fff; }
+.public-shell.volunteer-log-page .navbar { padding: .65rem 0; margin-bottom: 1rem !important; }
+.public-shell.volunteer-log-page main > .container:first-child { padding-top: 0; }
+.public-shell.volunteer-log-page main > .volunteer-form { padding-top: .5rem; }
+.volunteer-form-heading { margin-bottom: 1.4rem; }
+.volunteer-form-heading h1 { margin-bottom: .35rem; }
+.volunteer-context { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem; border-radius: .75rem; background: #f0f5f0; }
+.volunteer-context[hidden], [data-context-fields][hidden] { display: none; }
+.volunteer-context-change { border: 0; padding: .5rem; background: transparent; color: #174b3c; text-decoration: underline; font-weight: 650; }
+.volunteer-notes summary { cursor: pointer; color: #245744; font-size: .875rem; font-weight: 600; }
+.btn-log { --bs-btn-color: #fff; --bs-btn-bg: #124b35; --bs-btn-border-color: #124b35; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #0c3626; --bs-btn-hover-border-color: #0c3626; --bs-btn-active-color: #fff; --bs-btn-active-bg: #0c3626; --bs-btn-active-border-color: #0c3626; --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: #556b60; --bs-btn-disabled-border-color: #556b60; min-height: 52px; }
+.volunteer-log-page footer { margin-top: 2rem !important; }
 .volunteer-history { max-width: 1000px; }
 .group-entry { max-width: 1100px; }
 .group-row { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(90px, 1fr) minmax(90px, 1fr) auto; gap: .75rem; align-items: end; padding: 1rem 0; border-top: 1px solid var(--vt-line); }

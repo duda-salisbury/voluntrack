@@ -57,6 +57,38 @@ function updateEventLocationChoices(form) {
         : (!available && choices.length ? 'No locations are available for this organization.' : '');
 }
 
+function updateVolunteerContext(form, initialize = false) {
+    const eventSelect = form.querySelector('[name="special_event_id"]');
+    const location = form.querySelector('[name="location_id"]');
+    const date = form.querySelector('[name="volunteered_at"]');
+    const summary = form.querySelector('[data-context-summary]');
+    const fields = form.querySelector('[data-context-fields]');
+    const toggle = form.querySelector('[data-context-toggle]');
+    if (!eventSelect || !location || !date || !summary || !fields || !toggle) return;
+
+    const eventOption = eventSelect.selectedOptions[0];
+    summary.hidden = !eventSelect.value;
+    if (!eventSelect.value) {
+        fields.hidden = false;
+        return;
+    }
+
+    form.querySelector('[data-context-event]').textContent = eventOption.dataset.eventName;
+    const locationName = location.value ? location.selectedOptions[0].textContent.trim() : 'Choose a location';
+    const formattedDate = date.value
+        ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${date.value}T00:00:00Z`))
+        : 'Choose a date';
+    form.querySelector('[data-context-detail]').textContent = `${locationName} · ${formattedDate}`;
+    form.querySelector('[data-context-date-status]').textContent = date.value > date.max
+        ? 'Choose today or an earlier date; future dates cannot be submitted.'
+        : '';
+    if (initialize) {
+        fields.hidden = form.dataset.hasErrors !== 'true' && location.checkValidity() && date.checkValidity();
+    }
+    toggle.textContent = fields.hidden ? 'Change' : 'Done';
+    toggle.setAttribute('aria-expanded', String(!fields.hidden));
+}
+
 function initializeForms() {
     document.querySelectorAll('[data-anon-token]').forEach(input => {
         if (input.value) return;
@@ -92,6 +124,7 @@ function initializeForms() {
         }
     });
     document.querySelectorAll('[data-event-locations]').forEach(updateEventLocations);
+    document.querySelectorAll('[data-volunteer-context]').forEach(form => updateVolunteerContext(form, true));
     document.querySelectorAll('[data-event-location-choices]').forEach(updateEventLocationChoices);
     const summary = document.querySelector('[data-validation-summary]');
     if (summary) summary.focus();
@@ -99,7 +132,15 @@ function initializeForms() {
 
 document.addEventListener('change', event => {
     const eventForm = event.target.closest('[data-event-locations]');
+    const volunteerForm = event.target.closest('[data-volunteer-context]');
+    if (volunteerForm && event.target.matches('[name="special_event_id"]') && event.target.value) {
+        volunteerForm.querySelector('[name="volunteered_at"]').value = event.target.selectedOptions[0].dataset.eventDate;
+        volunteerForm.querySelector('[name="location_id"]').value = '';
+    }
     if (eventForm && event.target.matches('[name="special_event_id"]')) updateEventLocations(eventForm);
+    if (volunteerForm && event.target.matches('[name="special_event_id"], [name="location_id"], [name="volunteered_at"]')) {
+        updateVolunteerContext(volunteerForm);
+    }
     const choicesForm = event.target.closest('[data-event-location-choices]');
     if (choicesForm && event.target.matches('[name="organization_id"], [name="location_mode"]')) updateEventLocationChoices(choicesForm);
 
@@ -132,6 +173,22 @@ document.addEventListener('toggle', async event => {
 }, true);
 
 document.addEventListener('click', async event => {
+    const contextToggle = event.target.closest('[data-context-toggle]');
+    if (contextToggle) {
+        const form = contextToggle.closest('[data-volunteer-context]');
+        const fields = form.querySelector('[data-context-fields]');
+        if (!fields.hidden) {
+            const invalid = fields.querySelector(':invalid');
+            if (invalid) {
+                invalid.reportValidity();
+                return;
+            }
+        }
+        fields.hidden = !fields.hidden;
+        updateVolunteerContext(form);
+        if (!fields.hidden) form.querySelector('[name="special_event_id"]').focus();
+        return;
+    }
     const addRow = event.target.closest('[data-add-group-row]');
     if (addRow) {
         const form = addRow.closest('[data-group-form]');
