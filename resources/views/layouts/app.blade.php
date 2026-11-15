@@ -116,7 +116,7 @@
 
     <footer class="border-top mt-5 py-3 text-center text-muted">
         <div class="container">
-            <small>&copy; {{ date('Y') }} {{ isset($org) && $org ? $org->name : 'Voluntrack' }}. Built for volunteers.</small>
+            <small>@hasSection('footer-text')@yield('footer-text')@else&copy; {{ date('Y') }} {{ isset($org) && $org ? $org->name : 'Voluntrack' }}. Built for volunteers.@endif</small>
             <small class="d-block mt-1"><button type="button" class="border-0 bg-transparent p-0 text-muted text-decoration-underline" data-bs-toggle="modal" data-bs-target="#about-js7y">a js7y project</button></small>
         </div>
     </footer>

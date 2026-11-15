@@ -6,6 +6,13 @@ function showRequestError(message) {
     error.focus();
 }
 
+function showOrganizationSearchError(event) {
+    if (event.detail.target?.id !== 'org-results') return false;
+    document.getElementById('org-results').replaceChildren();
+    document.getElementById('search-error').classList.remove('d-none');
+    return true;
+}
+
 function updateEventLocations(form) {
     const eventSelect = form.querySelector('[name="special_event_id"]');
     const locationSelect = form.querySelector('[name="location_id"]');
@@ -154,6 +161,14 @@ document.addEventListener('change', event => {
     }
 });
 
+document.addEventListener('input', event => {
+    const input = event.target;
+    if (input.id !== 'org-search' || !input.form?.matches('[data-organization-search]')) return;
+    if (window.htmx) window.htmx.trigger(input.form, 'htmx:abort');
+    document.getElementById('org-results').replaceChildren();
+    document.getElementById('search-error').classList.add('d-none');
+});
+
 document.addEventListener('toggle', async event => {
     const details = event.target;
     if (!details.matches('[data-qr-source]') || !details.open || details.dataset.qrReady) return;
@@ -233,7 +248,14 @@ document.addEventListener('htmx:configRequest', event => {
     event.detail.headers['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').content;
 });
 
-document.addEventListener('htmx:beforeRequest', () => {
+document.addEventListener('htmx:beforeRequest', event => {
+    if (event.detail.target?.id === 'org-results') {
+        document.getElementById('search-error').classList.add('d-none');
+        if ([...document.getElementById('org-search').value.trim()].length < 2) {
+            event.preventDefault();
+            document.getElementById('org-results').replaceChildren();
+        }
+    }
     const error = document.getElementById('request-error');
     if (error) error.classList.add('d-none');
 });
@@ -250,6 +272,7 @@ document.addEventListener('htmx:afterSwap', event => {
 });
 
 document.addEventListener('htmx:responseError', event => {
+    if (showOrganizationSearchError(event)) return;
     let message = 'Your request could not be completed. Please try again.';
     if (event.detail.xhr.status === 422) {
         try {
@@ -265,5 +288,8 @@ document.addEventListener('htmx:responseError', event => {
     }
     showRequestError(message);
 });
-document.addEventListener('htmx:sendError', () => showRequestError('Connection lost. Your change was not confirmed. Check your connection before trying again.'));
+document.addEventListener('htmx:sendError', event => {
+    if (showOrganizationSearchError(event)) return;
+    showRequestError('Connection lost. Your change was not confirmed. Check your connection before trying again.');
+});
 document.addEventListener('DOMContentLoaded', initializeForms);
