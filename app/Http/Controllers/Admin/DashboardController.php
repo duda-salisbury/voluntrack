@@ -18,7 +18,7 @@ class DashboardController extends Controller
 {
     public function overview(Request $request): View
     {
-        $organization = auth()->user()->organization;
+        $organization = auth()->user()->adminOrganization();
         $recentQuery = VolunteerEntry::query()
             ->when($organization, fn ($q) => $q->where('organization_id', $organization->id))
             ->where('created_at', '>=', now()->subDays(30));
@@ -32,7 +32,7 @@ class DashboardController extends Controller
             return view('admin.overview', compact('organization', 'locationCount', 'recentEntries', 'recentHours', 'recent'));
         }
 
-        $withoutAdmins = Organization::whereDoesntHave('users', fn ($q) => $q->where('is_admin', true));
+        $withoutAdmins = Organization::whereDoesntHave('users', fn ($q) => $q->where('organization_user.role', 'admin'));
         $platformStats = [
             'organizations' => Organization::count(),
             'active' => Organization::where('is_active', true)->count(),
@@ -83,7 +83,7 @@ class DashboardController extends Controller
         $accounts = (clone $query)->whereNotNull('volunteer_user_id')
             ->selectRaw('volunteer_user_id, SUM(hours) as total, COUNT(*) as submissions, MAX(volunteered_at) as last_worked')
             ->groupBy('volunteer_user_id')
-            ->with(['volunteerUser' => fn ($q) => $q->when(auth()->user()->organization_id !== null, fn ($q) => $q->where('organization_id', auth()->user()->organization_id))])
+            ->with('volunteerUser')
             ->orderByDesc('total')
             ->paginate(20)->withQueryString();
         $unlinked = (clone $query)->whereNull('volunteer_user_id')->count();
@@ -119,12 +119,14 @@ class DashboardController extends Controller
 
     private function filteredQuery(Request $request): Builder
     {
-        $orgId = auth()->user()->organization_id;
+        $orgId = auth()->user()->adminOrganizationId();
         $request->validate([
             'organization_id' => ['nullable', 'integer', Rule::exists('organizations', 'id')->whereNull('deleted_at')],
             'location_id' => ['nullable', 'integer', Rule::exists('locations', 'id')->when($orgId !== null, fn ($rule) => $rule->where('organization_id', $orgId))],
             'special_event_id' => ['nullable', 'integer', Rule::exists('special_events', 'id')->when($orgId !== null, fn ($rule) => $rule->where('organization_id', $orgId))],
-            'volunteer_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->when($orgId !== null, fn ($rule) => $rule->where('organization_id', $orgId))],
+            'volunteer_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->whereNull('deleted_at')->when($orgId !== null, fn ($rule) => $rule->where(fn ($query) => $query
+                ->whereExists(fn ($q) => $q->selectRaw('1')->from('organization_user')->whereColumn('organization_user.user_id', 'users.id')->where('organization_user.organization_id', $orgId))
+                ->orWhereExists(fn ($q) => $q->selectRaw('1')->from('volunteer_entries')->whereColumn('volunteer_entries.volunteer_user_id', 'users.id')->where('volunteer_entries.organization_id', $orgId)->whereNull('volunteer_entries.deleted_at'))))],
             'volunteer' => 'nullable|string|max:255',
             'source' => 'nullable|string|max:50',
             'matched' => ['nullable', Rule::in(['yes', 'no'])],
@@ -200,14 +202,16 @@ class DashboardController extends Controller
 
     private function filterOptions(Request $request): array
     {
-        $orgId = auth()->user()->organization_id ?? ($request->filled('organization_id') ? (int) $request->input('organization_id') : null);
+        $orgId = auth()->user()->adminOrganizationId() ?? ($request->filled('organization_id') ? (int) $request->input('organization_id') : null);
 
         return [
             'locations' => Location::withTrashed()->when($orgId !== null, fn ($q) => $q->where('organization_id', $orgId))->orderBy('name')->get(),
             'events' => SpecialEvent::when($orgId !== null, fn ($q) => $q->where('organization_id', $orgId))->orderBy('name')->get(),
-            'volunteers' => User::where('is_admin', false)->when($orgId !== null, fn ($q) => $q->where('organization_id', $orgId))->orderBy('name')->get(['id', 'name', 'email']),
+            'volunteers' => User::when($orgId !== null, fn ($q) => $q->where(fn ($q) => $q
+                ->whereHas('organizations', fn ($q) => $q->where('organizations.id', $orgId))
+                ->orWhereHas('volunteerEntries', fn ($q) => $q->where('organization_id', $orgId))))->orderBy('name')->get(['id', 'name', 'email']),
             'sources' => VolunteerEntry::when($orgId !== null, fn ($q) => $q->where('organization_id', $orgId))->whereNotNull('source')->distinct()->orderBy('source')->pluck('source'),
-            'organizations' => auth()->user()->isSuperAdmin() ? Organization::orderBy('name')->get() : collect(),
+            'organizations' => auth()->user()->isPlatformWorkspace() ? Organization::orderBy('name')->get() : collect(),
         ];
     }
 }

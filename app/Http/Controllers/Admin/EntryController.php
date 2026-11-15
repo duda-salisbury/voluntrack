@@ -19,7 +19,7 @@ class EntryController extends Controller
 {
     public function createGroup(): View
     {
-        $orgId = auth()->user()->organization_id;
+        $orgId = auth()->user()->adminOrganizationId();
         abort_if($orgId === null, 403, 'Group entry is available in an organization workspace.');
         $locations = Location::where('organization_id', $orgId)->orderBy('name')->get();
         $events = SpecialEvent::where('organization_id', $orgId)->orderByDesc('starts_on')->get();
@@ -29,7 +29,7 @@ class EntryController extends Controller
 
     public function storeGroup(Request $request): RedirectResponse
     {
-        $orgId = auth()->user()->organization_id;
+        $orgId = auth()->user()->adminOrganizationId();
         abort_if($orgId === null, 403, 'Group entry is available in an organization workspace.');
         $validator = Validator::make($request->all(), [
             'location_id' => ['required', Rule::exists('locations', 'id')->where('organization_id', $orgId)->whereNull('deleted_at')],
@@ -73,29 +73,28 @@ class EntryController extends Controller
     private function authorizeEntry(VolunteerEntry $entry): void
     {
         $user = auth()->user();
-        abort_unless($user->isSuperAdmin() || $entry->organization_id === $user->organization_id, 403);
+        abort_unless($user->isPlatformWorkspace() || $entry->organization_id === $user->adminOrganizationId(), 403);
     }
 
     public function create(): View
     {
         $user      = auth()->user();
-        $orgId     = $user->organization_id;
+        $orgId     = $user->adminOrganizationId();
         $locations = Location::orderBy('name')
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
             ->get();
 
-        $organizations = $user->isSuperAdmin()
+        $organizations = $user->isPlatformWorkspace()
             ? Organization::orderBy('name')->get(['id', 'name', 'slug'])
             : collect();
 
         // For org-admins scope volunteers to their org; for superadmin all volunteers are
         // passed as JSON grouped by org and filtered client-side
-        $volunteers = $user->isSuperAdmin()
-            ? User::where('is_admin', false)->orderBy('name')->get(['id', 'name', 'email', 'organization_id'])
-            : User::where('is_admin', false)->where('organization_id', $orgId)->orderBy('name')->get(['id', 'name', 'email', 'organization_id']);
+        $volunteers = User::with(['organizations' => fn ($q) => $q->when($orgId, fn ($q) => $q->where('organizations.id', $orgId))])
+            ->when($orgId, fn ($q) => $q->whereHas('organizations', fn ($q) => $q->where('organizations.id', $orgId)))->orderBy('name')->get();
 
         $locationsJson  = $locations->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'org' => $l->organization_id])->values();
-        $volunteersJson = $volunteers->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'email' => $v->email, 'org' => $v->organization_id])->values();
+        $volunteersJson = $volunteers->flatMap(fn ($v) => $v->organizations->map(fn ($org) => ['id' => $v->id, 'name' => $v->name, 'email' => $v->email, 'org' => $org->id]))->values();
         $events = SpecialEvent::with('organization')->orderBy('name')
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))->get();
 
@@ -105,17 +104,18 @@ class EntryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user         = auth()->user();
-        $orgId        = $user->organization_id;
+        $orgId        = $user->adminOrganizationId();
 
         // Superadmin picks org from the form
-        if ($user->isSuperAdmin()) {
+        if ($user->isPlatformWorkspace()) {
             $request->validate(['organization_id' => 'required|exists:organizations,id']);
             $orgId = $request->input('organization_id');
         }
 
         $validated = $request->validate([
             'name'               => 'nullable|string|max:255',
-            'volunteer_user_id'  => ['nullable', Rule::exists('users', 'id')->where('organization_id', $orgId)->where('is_admin', false)->whereNull('deleted_at')],
+            'volunteer_user_id'  => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')->where(fn ($query) => $query
+                ->whereExists(fn ($q) => $q->selectRaw('1')->from('organization_user')->whereColumn('organization_user.user_id', 'users.id')->where('organization_user.organization_id', $orgId)))],
             'location_id'        => ['required', Rule::exists('locations', 'id')->where('organization_id', $orgId)->whereNull('deleted_at')],
             'special_event_id'   => ['nullable', Rule::exists('special_events', 'id')->where('organization_id', $orgId)],
             'volunteered_at'     => 'required|date',
@@ -185,8 +185,8 @@ class EntryController extends Controller
     public function destroy(VolunteerEntry $entry): RedirectResponse
     {
         $user = auth()->user();
-        if (! $user->isSuperAdmin()) {
-            abort_if($entry->organization_id !== $user->organization_id, 403);
+        if (! $user->isPlatformWorkspace()) {
+            abort_if($entry->organization_id !== $user->adminOrganizationId(), 403);
         }
 
         $entry->delete();

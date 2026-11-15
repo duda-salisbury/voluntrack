@@ -80,7 +80,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>Name</th>
-                        @if(auth()->user()->isSuperAdmin())
+                        @if(auth()->user()->isPlatformWorkspace())
                             <th>Organization</th>
                         @endif
                         <th>Source</th>

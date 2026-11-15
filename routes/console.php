@@ -58,8 +58,7 @@ Artisan::command('createAdmin {--name= : Administrator name} {--email= : Adminis
         'name' => $name,
         'email' => $email,
         'password' => Hash::make($password),
-        'is_admin' => true,
-        'organization_id' => null,
+        'is_platform_admin' => true,
     ]);
 
     if ($interactive) {

@@ -1,28 +1,13 @@
 @extends('layouts.admin')
-
-@section('title', 'New User')
-
+@section('title', 'Add volunteer')
 @section('content')
-<div class="container-fluid" style="max-width: 760px;">
-
-    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
-        <div>
-            <h1 class="h3 mb-1">New User</h1>
-            <p class="text-muted mb-0">Create an admin or volunteer account.</p>
-        </div>
-        <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary btn-sm">← Users</a>
-    </div>
-
-    <form method="POST" action="{{ route('admin.users.store') }}">
-        @csrf
-
-        @include('admin.users._form', ['user' => new App\Models\User])
-
-        <div class="d-flex justify-content-end gap-2 pb-5">
-            <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn btn-primary px-4">Create User</button>
-        </div>
-    </form>
-
+<div class="container-fluid workspace" style="max-width: 700px">
+    <div class="page-heading"><div><p class="eyebrow">People & access</p><h1>Add a volunteer</h1><p class="text-muted">An existing account keeps its password and other memberships. A new account receives a password setup email.</p></div></div>
+    <form method="POST" action="{{ route('admin.users.store') }}" class="card"><div class="card-body">@csrf
+        @if(auth()->user()->isPlatformWorkspace())<div class="mb-3"><label class="form-label" for="organization_id">Organization</label><select class="form-select" id="organization_id" name="organization_id" required><option value="">Choose an organization</option>@foreach($organizations as $organization)<option value="{{ $organization->id }}" @selected(old('organization_id') == $organization->id)>{{ $organization->name }}</option>@endforeach</select></div>@endif
+        <div class="mb-3"><label class="form-label" for="email">Email</label><input class="form-control" id="email" type="email" name="email" value="{{ old('email') }}" required></div>
+        <div class="mb-3"><label class="form-label" for="name">Name <span class="text-muted">(required for a new account)</span></label><input class="form-control" id="name" name="name" value="{{ old('name') }}" maxlength="255"></div>
+        <button class="btn btn-primary">Add volunteer</button><a class="btn btn-outline-secondary" href="{{ route('admin.users.index') }}">Cancel</a>
+    </div></form>
 </div>
 @endsection

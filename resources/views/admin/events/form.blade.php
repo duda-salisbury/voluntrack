@@ -7,7 +7,7 @@
         @csrf
         @if($event->exists) @method('PUT') @endif
         <div class="card"><div class="card-body p-4">
-            @if(auth()->user()->isSuperAdmin() && !$event->exists)
+            @if(auth()->user()->isPlatformWorkspace() && !$event->exists)
             <div class="mb-4"><label for="organization_id" class="form-label">Organization</label><select id="organization_id" name="organization_id" class="form-select" required><option value="">Choose an organization</option>@foreach($organizations as $organization)<option value="{{ $organization->id }}" @selected(old('organization_id', request('organization_id')) == $organization->id)>{{ $organization->name }}</option>@endforeach</select></div>
             @elseif($event->exists)
             <p class="small text-muted">Organization: <strong>{{ $event->organization?->name }}</strong></p>

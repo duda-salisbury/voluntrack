@@ -15,7 +15,7 @@ class HistoryController extends Controller
     public function index(Organization $org): View|RedirectResponse
     {
         abort_if(! $org->is_active, 404);
-        if (! auth()->check() || auth()->user()->is_admin) {
+        if (! auth()->check()) {
             return redirect()->route('org.account.login', $org)
                 ->with('error', 'Please sign in to view your history.');
         }

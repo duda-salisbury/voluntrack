@@ -14,7 +14,7 @@
                 <span class="text-end"><span class="badge bg-primary-subtle text-primary">{{ $event->scheduleStatus() }}</span> <span class="badge {{ $event->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $event->is_active ? 'Open for logging' : 'Closed for logging' }}</span></span>
             </div>
             <h2 class="h4"><a href="{{ route('admin.special-events.show', $event) }}">{{ $event->name }}</a></h2>
-            @if(auth()->user()->isSuperAdmin())<p class="small text-muted">{{ $event->organization?->name ?? 'Archived organization' }}</p>@endif
+            @if(auth()->user()->isPlatformWorkspace())<p class="small text-muted">{{ $event->organization?->name ?? 'Archived organization' }}</p>@endif
             <p class="text-muted">{{ Str::limit($event->description, 140) }}</p>
             <div class="mt-auto pt-3 border-top d-flex gap-4"><div><strong class="fs-4">{{ number_format($event->volunteer_entries_sum_hours ?? 0, 1) }}</strong><span class="small text-muted d-block">hours contributed</span></div><div><strong class="fs-4">{{ $event->volunteer_entries_count }}</strong><span class="small text-muted d-block">submissions</span></div></div>
         </div></article></div>

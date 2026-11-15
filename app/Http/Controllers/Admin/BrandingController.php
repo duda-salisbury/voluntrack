@@ -103,6 +103,6 @@ class BrandingController extends Controller
 
     private function resolveOrg(): ?Organization
     {
-        return auth()->user()?->organization;
+        return auth()->user()?->adminOrganization();
     }
 }

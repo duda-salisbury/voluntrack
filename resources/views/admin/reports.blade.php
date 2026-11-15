@@ -38,7 +38,7 @@
     <section class="card"><div class="card-body"><h2 class="h4 mb-3">Recent submissions</h2>
         <div class="table-responsive"><table class="table align-middle"><thead><tr><th scope="col">Received</th><th scope="col">Volunteer</th><th scope="col">Location / event</th><th scope="col" class="text-end">Hours</th></tr></thead><tbody>
             @forelse($recent as $entry)
-            <tr><td class="small text-nowrap">{{ $entry->created_at->format('M j, Y') }}<span class="d-block text-muted">Worked {{ $entry->volunteered_at->format('M j') }}</span></td><td><a href="{{ route('admin.entries.edit', $entry) }}">{{ $entry->name ?: 'Anonymous' }}</a>@if(auth()->user()->isSuperAdmin())<small class="d-block text-muted">{{ $entry->organization?->name }}</small>@endif</td><td>{{ $entry->location?->name }}<span class="d-block small text-muted">{{ $entry->specialEvent?->name ?? 'Ordinary volunteering' }}</span></td><td class="text-end fw-semibold">{{ number_format($entry->hours, 2) }}</td></tr>
+            <tr><td class="small text-nowrap">{{ $entry->created_at->format('M j, Y') }}<span class="d-block text-muted">Worked {{ $entry->volunteered_at->format('M j') }}</span></td><td><a href="{{ route('admin.entries.edit', $entry) }}">{{ $entry->name ?: 'Anonymous' }}</a>@if(auth()->user()->isPlatformWorkspace())<small class="d-block text-muted">{{ $entry->organization?->name }}</small>@endif</td><td>{{ $entry->location?->name }}<span class="d-block small text-muted">{{ $entry->specialEvent?->name ?? 'Ordinary volunteering' }}</span></td><td class="text-end fw-semibold">{{ number_format($entry->hours, 2) }}</td></tr>
             @empty
             <tr><td colspan="4" class="text-muted py-4">No submissions yet.</td></tr>
             @endforelse

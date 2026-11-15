@@ -9,7 +9,7 @@
             <div class="text-muted small text-truncate" style="max-width: 280px;">{{ $location->description }}</div>
         @endif
     </td>
-    @if(auth()->user()->isSuperAdmin())
+    @if(auth()->user()->isPlatformWorkspace())
     <td class="text-muted small">{{ $location->organization->name ?? '—' }}</td>
     @endif
     <td>

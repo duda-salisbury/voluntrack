@@ -108,10 +108,9 @@ set `MAIL_MAILER=log` to avoid sending real messages.
    set a logo and accent color. Saving opens its onboarding overview.
 2. **Invite its administrator.** In the organization's **Administrators** section,
    enter the person's name and email and choose **Send secure invitation**. They
-   receive an expiring, single-use password-setup link and then sign in at
-   `/login`. Repeating the form can resend a link (subject to throttling).
-   Existing accounts in this organization can be promoted. Accounts from another
-   organization and platform administrator accounts are never reassigned here.
+   New accounts receive an expiring, single-use password-setup link. Existing
+   accounts receive an access notification and retain their existing credentials
+   and memberships. Administrators sign in at `/login`.
 3. **Customize the form.** As the organization administrator, open **Settings**.
    Change the heading, introduction, labels, submission text,
    confirmation message, logo, color, and supported behavior toggles. Save, then
@@ -151,10 +150,9 @@ set `MAIL_MAILER=log` to avoid sending real messages.
   shows up to ten matches. Direct organization URLs remain available. Signed-in
   users are directed to their workspace or volunteer history when available.
 - Overview activity counts submissions received in the last 30 days; reports
-  remain independently filterable. Organization administrators can manage
-  volunteer accounts and their own account, but not other administrators. They
-  can invite new administrators; only platform administrators can manage or
-  resend invitations to existing administrator accounts.
+  remain independently filterable. Organization administrators manage
+  memberships, not another person's global account. Only platform administrators
+  can remove another administrator's membership.
 - Group entry saves up to 50 ordinary contributions together in a transaction.
   Names do not create or link accounts. Volunteer activity groups only
   account-linked records; unlinked contributions remain individual records.
@@ -175,10 +173,15 @@ set `MAIL_MAILER=log` to avoid sending real messages.
 - The public form supports home-screen shortcuts with an organization-specific
   web manifest. **An internet connection is required**; this is not an offline
   submission queue.
-- The current account schema still has one `organization_id`. Multi-organization
-  memberships, organization switching, and cross-organization account joining
-  require a future membership model. This change does not silently move people
-  between organizations or introduce an incomplete membership system.
+- Accounts have one global profile and may hold different roles in multiple
+  organizations. Visiting a form does not join an organization; joining or
+  submitting hours while signed in does. Anonymous history is not linked
+  retroactively. Removing a membership leaves the account and its entries intact.
+- Back up the database before applying the membership migration. It copies legacy
+  roles into memberships and an explicit platform-administrator flag without
+  deleting users or entries. Do not roll it back after memberships have changed:
+  the legacy columns are retained but no longer updated and cannot restore those
+  changes.
 - Public-link QR codes are generated locally in the browser with the small
   `qrcode-generator` dependency; organization URLs are not sent to a QR service.
 - Volunteer corrections remain administrator-managed; no automatic changes to

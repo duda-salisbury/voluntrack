@@ -18,7 +18,7 @@ class LocationController extends Controller
     /** The org the current admin is scoped to (null = super-admin). */
     private function adminOrgId(): ?int
     {
-        return auth()->user()->organization_id;
+        return auth()->user()->adminOrganizationId();
     }
 
     /** Base query — super-admins see all; org-admins see their own. */

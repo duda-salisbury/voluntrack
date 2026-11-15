@@ -12,8 +12,8 @@
 <body class="admin-shell">
 @php
     $adminUser = auth()->user();
-    $adminOrg = $adminUser->organization;
-    $navigation = $adminUser->isSuperAdmin() ? [
+    $adminOrg = $adminUser->adminOrganization();
+    $navigation = $adminUser->isPlatformWorkspace() ? [
         ['admin.overview', 'Overview', 'admin.overview'],
         ['admin.organizations.index', 'Organizations', 'admin.organizations.*'],
         ['admin.users.index', 'People & access', 'admin.users.*'],
@@ -37,8 +37,8 @@
         </button>
         <a class="brand-mark" href="{{ route('admin.overview') }}" aria-label="Voluntrack overview"><img src="{{ asset('voluntrack.svg') }}" width="28" height="28" alt=""> <span class="d-none d-sm-inline">Voluntrack</span></a>
     </div>
-    <div class="workspace-identity"><span class="eyebrow mb-0">{{ $adminUser->isSuperAdmin() ? 'Platform administrator' : 'Organization workspace' }}</span><strong class="text-truncate">{{ $adminOrg?->name ?? 'All organizations' }}</strong></div>
-    <form method="POST" action="{{ route('logout') }}" class="ms-auto">@csrf<button class="btn btn-sm btn-outline-secondary">Sign out</button></form>
+    <div class="workspace-identity"><span class="eyebrow mb-0">{{ $adminUser->isPlatformWorkspace() ? 'Platform administrator' : 'Organization workspace' }}</span><strong class="text-truncate">{{ $adminOrg?->name ?? 'All organizations' }}</strong></div>
+    <div class="ms-auto">@include('layouts.account-menu', ['org' => $adminOrg])</div>
 </header>
 <div class="admin-frame">
     <aside class="offcanvas-md offcanvas-start admin-sidebar" tabindex="-1" id="workspace-navigation" aria-labelledby="navigation-title">
@@ -46,7 +46,7 @@
         <div class="offcanvas-body flex-column">
             <div class="sidebar-context">
                 @if($adminOrg?->logo_url)<img src="{{ $adminOrg->logo_url }}" class="sidebar-logo" alt="">@endif
-                <p class="eyebrow">{{ $adminUser->isSuperAdmin() ? 'Platform' : 'Your organization' }}</p><strong>{{ $adminOrg?->name ?? 'Voluntrack' }}</strong>
+                <p class="eyebrow">{{ $adminUser->isPlatformWorkspace() ? 'Platform' : 'Your organization' }}</p><strong>{{ $adminOrg?->name ?? 'Voluntrack' }}</strong>
                 <span class="d-block small text-muted mt-1">{{ $adminUser->name }}</span>
             </div>
             <nav aria-label="Main navigation" class="workspace-nav">

@@ -88,13 +88,13 @@ This will:
 - Seed locations and admin user
 
 ### Update Admin User
-If you need to manually set admin flag:
+If you need to grant platform-wide administrator access:
 ```bash
 php artisan tinker
 
 # In tinker:
 $user = User::where('email', 'admin@voluntrack.test')->first();
-$user->is_admin = true;
+$user->is_platform_admin = true;
 $user->save();
 ```
 
@@ -125,9 +125,9 @@ Bootstrap 5 and HTMX are loaded via CDN, not through Vite.
 ## Troubleshooting
 
 ### Can't login as admin
-Make sure the is_admin flag is set:
+Check the platform privilege or the person's administrator membership:
 ```bash
-php artisan tinker --execute="\$user = User::where('email', 'admin@voluntrack.test')->first(); \$user->is_admin = true; \$user->save();"
+php artisan tinker --execute="\$user = App\\Models\\User::where('email', 'admin@voluntrack.test')->first(); \$user->is_platform_admin = true; \$user->save();"
 ```
 
 ### HTMX not working

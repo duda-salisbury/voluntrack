@@ -120,7 +120,7 @@
                     name="name" 
                     id="name" 
                     class="form-control @error('name') is-invalid @enderror"
-                    value="{{ old('name', (auth()->check() && auth()->user()->isVolunteer() && auth()->user()->organization_id === $org->id) ? auth()->user()->name : null) }}"
+                    value="{{ old('name', auth()->user()?->name) }}"
                     maxlength="255"
                     autocomplete="name"
                     @required($org->config->requireName)

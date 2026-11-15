@@ -38,10 +38,18 @@ class VolunteerWorkflowTest extends TestCase
 
     private function administrator(?Organization $organization = null): User
     {
-        return User::factory()->create([
-            'is_admin' => true,
-            'organization_id' => $organization?->id,
-        ]);
+        $user = User::factory()->create(['is_platform_admin' => $organization === null]);
+        if ($organization) {
+            $user->organizations()->attach($organization, ['role' => 'admin']);
+        }
+        return $user;
+    }
+
+    private function volunteer(Organization $organization, array $attributes = []): User
+    {
+        $user = User::factory()->create($attributes);
+        $user->organizations()->attach($organization, ['role' => 'volunteer']);
+        return $user;
     }
 
     private function location(Organization $organization): Location
@@ -122,8 +130,7 @@ class VolunteerWorkflowTest extends TestCase
             'name' => 'QC Administrator', 'email' => 'qc-admin@example.test',
         ])->assertRedirect(route('admin.organizations.show', $organization));
         $administrator = User::where('email', 'qc-admin@example.test')->firstOrFail();
-        $this->assertTrue($administrator->is_admin);
-        $this->assertSame($organization->id, $administrator->organization_id);
+        $this->assertTrue($administrator->hasOrganizationRole($organization->id, 'admin'));
         $token = null;
         Notification::assertSentTo($administrator, AdministratorInvitation::class, function ($notification) use (&$token, $administrator) {
             $token = $notification->token;
@@ -143,7 +150,7 @@ class VolunteerWorkflowTest extends TestCase
         ])->assertRedirect(route('login'));
         $this->assertTrue(Hash::check('a-secure-password-123', $administrator->fresh()->password));
         $this->post(route('login.post'), ['email' => $administrator->email, 'password' => 'a-secure-password-123'])
-            ->assertRedirect(route('admin.overview'));
+            ->assertRedirect(route('home'));
         $this->get(route('admin.overview'))->assertOk()->assertSee('QC NEMBA');
     }
 
@@ -152,17 +159,18 @@ class VolunteerWorkflowTest extends TestCase
         Notification::fake();
         $organization = $this->organization();
         $other = $this->organization('other');
-        $volunteer = User::factory()->create(['is_admin' => false, 'organization_id' => $organization->id]);
-        $foreignUser = User::factory()->create(['is_admin' => true, 'organization_id' => $other->id]);
+        $volunteer = $this->volunteer($organization);
+        $foreignUser = $this->administrator($other);
         $this->actingAs($this->administrator());
         $this->post(route('admin.organizations.administrators', $organization), [
             'name' => $volunteer->name, 'email' => $volunteer->email,
         ])->assertSessionHasNoErrors();
-        $this->assertTrue($volunteer->fresh()->is_admin);
+        $this->assertTrue($volunteer->fresh()->hasOrganizationRole($organization->id, 'admin'));
         $this->post(route('admin.organizations.administrators', $organization), [
             'name' => $foreignUser->name, 'email' => $foreignUser->email,
-        ])->assertSessionHasErrors('email');
-        $this->assertSame($other->id, $foreignUser->fresh()->organization_id);
+        ])->assertSessionHasNoErrors();
+        $this->assertTrue($foreignUser->fresh()->hasOrganizationRole($other->id, 'admin'));
+        $this->assertTrue($foreignUser->fresh()->hasOrganizationRole($organization->id, 'admin'));
     }
 
     public function test_invitation_link_is_single_use_and_invalid_tokens_cannot_activate_accounts(): void
@@ -274,12 +282,12 @@ class VolunteerWorkflowTest extends TestCase
     {
         $organization = $this->organization();
         $other = $this->organization('other');
-        $volunteer = User::factory()->create(['is_admin' => false, 'organization_id' => $organization->id]);
+        $volunteer = $this->volunteer($organization);
         $this->actingAs($volunteer)->post(route('org.hours.store', $organization), $this->submission($this->location($organization), ['anon_token' => (string) Str::uuid()]))
             ->assertSessionHasNoErrors();
         $this->assertDatabaseHas('volunteer_entries', ['volunteer_user_id' => $volunteer->id, 'anon_token' => null, 'name' => $volunteer->name]);
         $this->post(route('org.hours.store', $other), $this->submission($this->location($other)))->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('volunteer_entries', ['organization_id' => $other->id, 'volunteer_user_id' => null]);
+        $this->assertDatabaseHas('volunteer_entries', ['organization_id' => $other->id, 'volunteer_user_id' => $volunteer->id]);
     }
 
     public function test_organization_admin_creates_location_and_special_event_without_accepting_a_spoofed_org(): void
@@ -338,7 +346,7 @@ class VolunteerWorkflowTest extends TestCase
         $other = $this->organization('other');
         $location = $this->location($organization);
         $entry = $this->entry($organization, $location, ['is_matched' => true]);
-        $foreignVolunteer = User::factory()->create(['organization_id' => $other->id, 'is_admin' => false]);
+        $foreignVolunteer = $this->volunteer($other);
         $this->actingAs($this->administrator($organization));
         $this->put(route('admin.entries.update', $entry), $this->submission($this->location($other)))
             ->assertSessionHasErrors('location_id');
@@ -357,7 +365,7 @@ class VolunteerWorkflowTest extends TestCase
         $other = $this->organization('other');
         $location = $this->location($organization);
         $event = $this->event($organization);
-        $volunteer = User::factory()->create(['is_admin' => false, 'organization_id' => $organization->id]);
+        $volunteer = $this->volunteer($organization);
         $this->entry($organization, $location, ['special_event_id' => $event->id, 'volunteer_user_id' => $volunteer->id, 'name' => $volunteer->name, 'is_matched' => true]);
         $this->entry($organization, $location, ['hours' => 2, 'anon_token' => (string) Str::uuid()]);
         $this->entry($organization, $location, ['hours' => 3, 'source' => 'admin', 'volunteered_at' => '2026-09-01']);
@@ -417,8 +425,8 @@ class VolunteerWorkflowTest extends TestCase
         $this->get(route('admin.users.edit', $foreignUser))->assertForbidden();
         $this->get(route('admin.reports', ['special_event_id' => $foreignEvent->id]))->assertSessionHasErrors('special_event_id');
         $this->get(route('admin.reports', ['date_from' => '2026-10-02', 'date_to' => '2026-10-01']))->assertSessionHasErrors('date_to');
-        $this->actingAs(User::factory()->create(['is_admin' => false, 'organization_id' => $organization->id]));
-        $this->get(route('admin.overview'))->assertRedirect(route('login'));
+        $this->actingAs($this->volunteer($organization));
+        $this->get(route('admin.overview'))->assertForbidden();
     }
 
     public function test_inactive_organizations_are_unavailable_and_manifest_has_org_specific_start_url(): void
@@ -514,7 +522,7 @@ class VolunteerWorkflowTest extends TestCase
         ])->assertRedirect(route('org.hours.index', $organization));
         $this->assertAuthenticated();
         $volunteer = User::where('email', 'volunteer@example.test')->firstOrFail();
-        $this->assertFalse($volunteer->is_admin);
+        $this->assertTrue($volunteer->hasOrganizationRole($organization->id, 'volunteer'));
         $this->post(route('org.hours.store', $organization), $this->submission($location, ['special_event_id' => $event->id]))
             ->assertSessionHasNoErrors();
         $this->entry($organization, $location, ['name' => 'Another private volunteer', 'hours' => 10]);
@@ -559,14 +567,14 @@ class VolunteerWorkflowTest extends TestCase
     {
         $organization = $this->organization();
         $admin = $this->administrator($organization);
-        $volunteer = User::factory()->create(['is_admin' => false, 'organization_id' => $organization->id]);
+        $volunteer = $this->volunteer($organization);
         $this->actingAs($this->administrator())->get(route('home'))->assertRedirect(route('admin.overview'));
         $this->actingAs($admin)->get(route('home'))->assertRedirect(route('admin.overview'));
         $this->actingAs($volunteer)->get(route('home'))->assertRedirect(route('org.account.history', $organization));
         $organization->update(['is_active' => false]);
         $this->actingAs($admin->fresh())->get(route('home'))->assertOk()->assertSee('organization is unavailable');
         $this->actingAs($volunteer->fresh())->get(route('home'))->assertOk()->assertSee('organization is unavailable');
-        $volunteer->update(['organization_id' => null]);
+        $volunteer->organizations()->detach($organization->id);
         $this->actingAs($volunteer->fresh())->get(route('home'))->assertOk()->assertSee('organization is unavailable');
     }
 
@@ -575,7 +583,7 @@ class VolunteerWorkflowTest extends TestCase
         $organization = $this->organization();
         $admin = $this->administrator($organization);
         $otherAdmin = $this->administrator($organization);
-        $volunteer = User::factory()->create(['is_admin' => false, 'organization_id' => $organization->id]);
+        $volunteer = $this->volunteer($organization);
         $this->actingAs($admin);
         $this->get(route('admin.users.edit', $otherAdmin))->assertForbidden();
         $this->put(route('admin.users.update', $otherAdmin), [
@@ -583,9 +591,10 @@ class VolunteerWorkflowTest extends TestCase
             'password' => 'replacement-password', 'password_confirmation' => 'replacement-password',
         ])->assertForbidden();
         $this->delete(route('admin.users.destroy', $otherAdmin))->assertForbidden();
-        $this->get(route('admin.users.edit', $volunteer))->assertOk();
-        $this->get(route('admin.users.edit', $admin))->assertOk();
-        $this->actingAs($this->administrator())->get(route('admin.users.edit', $otherAdmin))->assertOk();
+        $this->get(route('admin.users.edit', $volunteer))->assertForbidden();
+        $this->get(route('admin.users.edit', $admin))->assertRedirect(route('account.profile'));
+        $this->actingAs($this->administrator())->post(route('account.platform'));
+        $this->get(route('admin.users.edit', $otherAdmin))->assertForbidden();
     }
 
     public function test_platform_organizations_are_filtered_and_paginated(): void
@@ -614,7 +623,8 @@ class VolunteerWorkflowTest extends TestCase
         $this->actingAs($this->administrator($organization))->get(route('admin.overview'))
             ->assertOk()->assertViewHas('recentHours', 3.0)->assertViewHas('recentEntries', 1)
             ->assertSee('Recent person')->assertDontSee('Earlier person')->assertDontSee('Other person');
-        $this->actingAs($this->administrator())->get(route('admin.overview'))
+        $this->actingAs($this->administrator())->post(route('account.platform'));
+        $this->get(route('admin.overview'))
             ->assertOk()->assertViewHas('platformStats', fn ($stats) => $stats['organizations'] === 2 && $stats['without_admins'] === 1)
             ->assertSee($other->name);
     }
@@ -682,8 +692,8 @@ class VolunteerWorkflowTest extends TestCase
     {
         $organization = $this->organization();
         $location = $this->location($organization);
-        $first = User::factory()->create(['name' => 'Same Name', 'is_admin' => false, 'organization_id' => $organization->id]);
-        $second = User::factory()->create(['name' => 'Same Name', 'is_admin' => false, 'organization_id' => $organization->id]);
+        $first = $this->volunteer($organization, ['name' => 'Same Name']);
+        $second = $this->volunteer($organization, ['name' => 'Same Name']);
         $this->entry($organization, $location, ['name' => 'Same Name', 'volunteer_user_id' => $first->id]);
         $this->entry($organization, $location, ['name' => 'Same Name', 'volunteer_user_id' => $second->id]);
         $this->entry($organization, $location, ['name' => 'Same Name']);

@@ -1,5 +1,9 @@
 # Admin Implementation Complete
 
+Historical implementation notes: authorization now uses organization memberships
+and an explicit platform-administrator flag. See [README.md](README.md) for the
+current setup and account behavior.
+
 ## Overview
 Full admin interface for Voluntrack volunteer hours tracking system with HTMX-enhanced inline editing.
 
@@ -66,7 +70,8 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
 ## Database Schema
 
 ### Users Table
-- Added `is_admin` boolean column (default: false)
+- Legacy `is_admin` values are migrated to organization memberships or the
+  explicit `is_platform_admin` flag.
 
 ### Volunteer Entries Table
 - Added `notes` text column for admin comments

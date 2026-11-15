@@ -12,8 +12,9 @@
     </div>
 
     <div id="form-container">
-        @if(auth()->check() && auth()->user()->isVolunteer() && auth()->user()->organization_id !== $org->id)
-            <p class="small text-muted">Your account is associated with another organization. You can still log hours here, but they won't be linked to that account.</p>
+        @if(auth()->check() && ! auth()->user()->hasOrganizationRole($org->id))
+            <p class="small text-muted">Your contribution will be linked to your account and add this organization to My Organizations.</p>
+            <form method="POST" action="{{ route('account.organizations.join', $org) }}" class="mb-3">@csrf<button class="btn btn-sm btn-outline-primary">Join this organization</button></form>
         @endif
         @include('hours.partials.form')
     </div>

@@ -46,13 +46,13 @@
                 @forelse($administrators as $administrator)
                     <div class="border-bottom py-3 d-flex justify-content-between gap-2 flex-wrap">
                         <div><strong>{{ $administrator->name }}</strong><div class="small text-muted">{{ $administrator->email }}</div></div>
-                        <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.users.edit', $administrator) }}">Manage account</a>
+                        <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.users.index', ['search' => $administrator->email]) }}">Manage access</a>
                     </div>
                 @empty
                     <p class="text-muted">Invite the first administrator to welcome {{ $organization->name }} to Voluntrack.</p>
                 @endforelse
                 <h3 class="h6 mt-4">Invite or assign an administrator</h3>
-                <p class="small text-muted">New accounts receive a password-setup email. An existing member of this organization can be promoted; repeat an invitation here to send a fresh link. Accounts belonging to another organization are never moved.</p>
+                <p class="small text-muted">New accounts receive a password-setup email. Existing accounts keep their credentials and other memberships.</p>
                 <form method="POST" action="{{ route('admin.organizations.administrators', $organization) }}" class="row g-3">
                     @csrf
                     <div class="col-sm-6"><label class="form-label" for="invite-name">Name</label><input id="invite-name" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name') }}" required maxlength="255" autocomplete="name">@error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>

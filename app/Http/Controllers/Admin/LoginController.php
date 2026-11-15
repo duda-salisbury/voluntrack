@@ -33,16 +33,8 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
 
-            // Check if user is admin
-            if (auth()->user()->is_admin) {
-                return redirect()->intended(route('admin.overview'));
-            }
-
-            // Not an admin, log them out
-            Auth::logout();
-            return back()->withErrors([
-                'email' => 'You do not have administrator access.',
-            ])->onlyInput('email');
+            $request->session()->forget('admin_organization_id');
+            return redirect()->intended(route('home'));
         }
 
         return back()->withErrors([

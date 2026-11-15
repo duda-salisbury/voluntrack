@@ -10,16 +10,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
- * Handles registration, login, and logout for volunteer accounts.
- *
- * This is intentionally kept separate from the admin LoginController so
- * the two surfaces never bleed into each other.
- *
- * Volunteers use the same 'web' guard and users table as admins.
- * The distinction is simply is_admin = false.
+ * Handles organization-facing registration, login, and logout.
  */
 class AuthController extends Controller
 {
@@ -31,7 +26,7 @@ class AuthController extends Controller
     {
         abort_if(! $org->is_active, 404);
 
-        if ($this->volunteerIsLoggedIn()) {
+        if (auth()->check()) {
             return redirect()->route('org.hours.index', $org);
         }
 
@@ -42,7 +37,7 @@ class AuthController extends Controller
     {
         abort_if(! $org->is_active, 404);
 
-        if ($this->volunteerIsLoggedIn()) {
+        if (auth()->check()) {
             return redirect()->route('org.hours.index', $org);
         }
 
@@ -52,13 +47,15 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $user = User::create([
-            'name'            => $validated['name'],
-            'email'           => $validated['email'],
-            'password'        => Hash::make($validated['password']),
-            'is_admin'        => false,
-            'organization_id' => $org->id,
-        ]);
+        $user = DB::transaction(function () use ($validated, $org) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+            ]);
+            $user->organizations()->attach($org->id, ['role' => 'volunteer']);
+            return $user;
+        });
 
         event(new Registered($user));
 
@@ -75,7 +72,7 @@ class AuthController extends Controller
     public function showLogin(Organization $org): View|RedirectResponse
     {
         abort_if(! $org->is_active, 404);
-        if ($this->volunteerIsLoggedIn()) {
+        if (auth()->check()) {
             return redirect()->route('org.hours.index', $org);
         }
 
@@ -94,27 +91,9 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
+            $request->session()->forget('admin_organization_id');
 
             $user = auth()->user();
-
-            // Block admin accounts from using the volunteer login form.
-            // Admins use /login instead.
-            if ($user->is_admin) {
-                Auth::logout();
-
-                return back()->withErrors([
-                    'email' => 'Please use the admin login page.',
-                ])->onlyInput('email');
-            }
-
-            // Block volunteers from logging in via a different org's form.
-            if ($user->organization_id !== $org->id) {
-                Auth::logout();
-
-                return back()->withErrors([
-                    'email' => 'No account found for this organization with those credentials.',
-                ])->onlyInput('email');
-            }
 
             return redirect()->route('org.hours.index', $org)
                 ->with('success', "Welcome back, {$user->name}!");
@@ -131,9 +110,7 @@ class AuthController extends Controller
 
     public function logout(Organization $org, Request $request): RedirectResponse
     {
-        // Only log out non-admin users from this route.
-        // Admin logout continues to use /logout (the existing route).
-        if (auth()->check() && ! auth()->user()->is_admin) {
+        if (auth()->check()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -142,10 +119,4 @@ class AuthController extends Controller
         return redirect()->route('org.hours.index', $org);
     }
 
-    // -------------------------------------------------------------------------
-
-    private function volunteerIsLoggedIn(): bool
-    {
-        return auth()->check() && ! auth()->user()->is_admin;
-    }
 }

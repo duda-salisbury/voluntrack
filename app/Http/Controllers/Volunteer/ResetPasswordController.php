@@ -48,9 +48,7 @@ class ResetPasswordController extends Controller
         if ($status === Password::PASSWORD_RESET) {
             $user = User::where('email', $request->input('email'))->firstOrFail();
 
-            return redirect()->to($user->is_admin
-                ? route('login')
-                : ($user->organization ? route('org.account.login', $user->organization) : route('home')))
+            return redirect()->route('login')
                 ->with('success', 'Your password is ready. Sign in to continue.');
         }
 

@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 class VolunteerHourController extends Controller
 {
@@ -80,12 +81,7 @@ class VolunteerHourController extends Controller
         $validated['source']          = 'manual';
         $validated['organization_id'] = $org->id;
 
-        // Link to volunteer account only if logged in AND belongs to this org
-        $isOrgVolunteer = auth()->check()
-            && auth()->user()->isVolunteer()
-            && (int) auth()->user()->organization_id === (int) $org->id;
-
-        if ($isOrgVolunteer) {
+        if (auth()->check()) {
             $validated['volunteer_user_id'] = auth()->id();
             if (empty($validated['name'])) {
                 $validated['name'] = auth()->user()->name;
@@ -94,7 +90,18 @@ class VolunteerHourController extends Controller
             unset($validated['anon_token']);
         }
 
-        $entry = VolunteerEntry::create($validated);
+        $entry = DB::transaction(function () use ($validated, $org) {
+            if (auth()->check()) {
+                DB::table('organization_user')->insertOrIgnore([
+                    'user_id' => auth()->id(),
+                    'organization_id' => $org->id,
+                    'role' => 'volunteer',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            return VolunteerEntry::create($validated);
+        });
 
         return redirect()->route('org.hours.success', $org)
             ->with('submitted_entry_id', $entry->id);

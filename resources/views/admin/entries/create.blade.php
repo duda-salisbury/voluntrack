@@ -16,7 +16,7 @@
                 @csrf
 
                 <div class="row">
-                    @if(auth()->user()->isSuperAdmin())
+                    @if(auth()->user()->isPlatformWorkspace())
                     <!-- Organization (superadmin only) -->
                     <div class="col-12 mb-4">
                         <label for="org-search" class="form-label fw-semibold">
@@ -58,8 +58,8 @@
                             class="form-select @error('location_id') is-invalid @enderror"
                             required
                         >
-                            <option value="">@if(auth()->user()->isSuperAdmin())Select an organization first…@else Select a location…@endif</option>
-                            @if(!auth()->user()->isSuperAdmin())
+                            <option value="">@if(auth()->user()->isPlatformWorkspace())Select an organization first…@else Select a location…@endif</option>
+                            @if(!auth()->user()->isPlatformWorkspace())
                                 @foreach($locations as $location)
                                     <option value="{{ $location->id }}" {{ old('location_id') == $location->id ? 'selected' : '' }}>
                                         {{ $location->name }}
@@ -79,7 +79,7 @@
                         <select name="special_event_id" id="special_event_id" class="form-select @error('special_event_id') is-invalid @enderror">
                             <option value="">Everyday volunteering / no event</option>
                             @foreach($events as $event)
-                                <option value="{{ $event->id }}" data-org="{{ $event->organization_id }}" @selected(old('special_event_id') == $event->id)>{{ $event->name }}@if(auth()->user()->isSuperAdmin()) ({{ $event->organization?->name }})@endif</option>
+                                <option value="{{ $event->id }}" data-org="{{ $event->organization_id }}" @selected(old('special_event_id') == $event->id)>{{ $event->name }}@if(auth()->user()->isPlatformWorkspace()) ({{ $event->organization?->name }})@endif</option>
                             @endforeach
                         </select>
                         @error('special_event_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -198,7 +198,7 @@
 </div>
 @endsection
 
-@if(auth()->user()->isSuperAdmin())
+@if(auth()->user()->isPlatformWorkspace())
 <script type="application/json" id="org-data">@json($organizations->values())</script>
 <script type="application/json" id="location-data">@json($locationsJson)</script>
 <script type="application/json" id="volunteer-data">@json($volunteersJson)</script>
@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // For org-admins, volunteers are already scoped — just init with full list from JSON or DOM
-    @if(!auth()->user()->isSuperAdmin())
+    @if(!auth()->user()->isPlatformWorkspace())
     const allVolunteers = @json($volunteersJson);
     setupVolunteerCombobox(allVolunteers);
     @endif

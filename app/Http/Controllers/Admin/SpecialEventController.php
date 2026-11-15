@@ -13,13 +13,13 @@ class SpecialEventController extends Controller
 {
     private function authorizeEvent(SpecialEvent $specialEvent): void
     {
-        abort_unless(auth()->user()->isSuperAdmin()
-            || $specialEvent->organization_id === auth()->user()->organization_id, 403);
+        abort_unless(auth()->user()->isPlatformWorkspace()
+            || $specialEvent->organization_id === auth()->user()->adminOrganizationId(), 403);
     }
 
     public function index(Request $request): View
     {
-        $orgId = auth()->user()->organization_id;
+        $orgId = auth()->user()->adminOrganizationId();
         $events = SpecialEvent::with('organization')->withCount('volunteerEntries')
             ->withSum('volunteerEntries', 'hours')
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
@@ -71,7 +71,7 @@ class SpecialEventController extends Controller
 
     private function form(SpecialEvent $event): View
     {
-        $organizations = auth()->user()->isSuperAdmin()
+        $organizations = auth()->user()->isPlatformWorkspace()
             ? Organization::orderBy('name')->get()
             : collect();
 
@@ -80,7 +80,7 @@ class SpecialEventController extends Controller
 
     private function validated(Request $request): array
     {
-        $orgId = auth()->user()->organization_id;
+        $orgId = auth()->user()->adminOrganizationId();
         $data = $request->validate([
             'organization_id' => $orgId === null && ! $request->route('special_event')
                 ? 'required|exists:organizations,id,deleted_at,NULL'

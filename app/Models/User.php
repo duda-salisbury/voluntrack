@@ -9,13 +9,13 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'is_admin', 'organization_id'])]
+#[Fillable(['name', 'email', 'password', 'is_platform_admin'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -32,13 +32,13 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password'         => 'hashed',
-            'is_admin'         => 'boolean',
+            'is_platform_admin' => 'boolean',
         ];
     }
 
-    public function organization(): BelongsTo
+    public function organizations(): BelongsToMany
     {
-        return $this->belongsTo(Organization::class);
+        return $this->belongsToMany(Organization::class)->withPivot('role')->withTimestamps();
     }
 
     public function volunteerEntries(): HasMany
@@ -46,20 +46,37 @@ class User extends Authenticatable
         return $this->hasMany(VolunteerEntry::class, 'volunteer_user_id');
     }
 
-    /**
-     * Super-admins have no assigned organization and can see all data.
-     * Org-admins have an organization_id and are scoped to that org only.
-     */
     public function isSuperAdmin(): bool
     {
-        return $this->is_admin && $this->organization_id === null;
+        return (bool) $this->is_platform_admin;
     }
 
-    /**
-     * Returns true for non-admin users (registered volunteer accounts).
-     */
-    public function isVolunteer(): bool
+    public function hasOrganizationRole(int $organizationId, ?string $role = null): bool
     {
-        return ! $this->is_admin;
+        $query = $this->organizations()->where('organizations.id', $organizationId);
+        if ($role !== null) {
+            $query->wherePivot('role', $role);
+        }
+
+        return $query->exists();
+    }
+
+    public function isPlatformWorkspace(): bool
+    {
+        return $this->isSuperAdmin() && ! session()->has('admin_organization_id');
+    }
+
+    public function adminOrganizationId(): ?int
+    {
+        return session()->has('admin_organization_id') ? (int) session('admin_organization_id') : null;
+    }
+
+    public function adminOrganization(): ?Organization
+    {
+        $id = $this->adminOrganizationId();
+
+        return $id === null ? null : $this->organizations()
+            ->where('organizations.id', $id)->where('organizations.is_active', true)
+            ->wherePivot('role', 'admin')->first();
     }
 }

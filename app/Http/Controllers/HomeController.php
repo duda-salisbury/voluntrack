@@ -12,11 +12,20 @@ class HomeController extends Controller
     public function index(Request $request): View|RedirectResponse
     {
         $user = $request->user();
-        if ($user?->isSuperAdmin()) {
+        if ($user?->isSuperAdmin() && ! $request->boolean('find')) {
+            $request->session()->forget('admin_organization_id');
             return redirect()->route('admin.overview');
         }
-        if ($user?->organization?->is_active) {
-            return redirect()->route($user->is_admin ? 'admin.overview' : 'org.account.history', $user->is_admin ? [] : ['org' => $user->organization]);
+        if ($user && ! $request->boolean('find')) {
+            $organization = $user->organizations()->where('organizations.is_active', true)
+                ->orderBy('organizations.name')->first();
+            if ($organization) {
+                if ($organization->pivot->role === 'admin') {
+                    $request->session()->put('admin_organization_id', $organization->id);
+                    return redirect()->route('admin.overview');
+                }
+                return redirect()->route('org.account.history', $organization);
+            }
         }
 
         $validated = $request->validate(['q' => 'nullable|string|max:255']);

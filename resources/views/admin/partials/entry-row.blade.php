@@ -8,7 +8,7 @@
             <span class="badge bg-primary ms-1" title="Registered volunteer account">Account</span>
         @endif
     </td>
-    @if(auth()->user()->isSuperAdmin())
+    @if(auth()->user()->isPlatformWorkspace())
     <td>
         <span class="badge bg-secondary">{{ $entry->organization->name ?? '—' }}</span>
     </td>

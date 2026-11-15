@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\AdministratorInvitation;
+use App\Notifications\OrganizationAccessGranted;
 use App\Support\OrganizationSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -25,7 +28,7 @@ class OrganizationController extends Controller
     {
         $this->requireSuperAdmin();
         $organization->loadCount(['locations', 'volunteerEntries', 'specialEvents']);
-        $administrators = $organization->users()->where('is_admin', true)->orderBy('name')->get();
+        $administrators = $organization->users()->wherePivot('role', 'admin')->orderBy('name')->get();
 
         return view('admin.organizations.show', compact('organization', 'administrators'));
     }
@@ -33,44 +36,40 @@ class OrganizationController extends Controller
     public function inviteAdministrator(Request $request, Organization $organization): RedirectResponse
     {
         $actor = $request->user();
-        abort_unless($actor->isSuperAdmin() || $actor->organization_id === $organization->id, 403);
+        abort_unless($actor->isSuperAdmin() || $actor->adminOrganizationId() === $organization->id, 403);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
         ]);
         $user = User::withTrashed()->where('email', $validated['email'])->first();
 
-        if ($user && ! $actor->isSuperAdmin()) {
-            return back()->withErrors(['email' => 'Only platform administrators can manage or resend invitations to existing accounts.'])->withInput();
+        if ($user?->trashed()) {
+            return back()->withErrors(['email' => 'This account is unavailable.'])->withInput();
         }
-        if ($user && ($user->trashed()
-            || ($user->organization_id !== null && $user->organization_id !== $organization->id)
-            || ($user->is_admin && $user->organization_id === null))) {
-            return back()->withErrors(['email' => 'This account belongs to another organization or is a platform administrator. Existing access has not been changed.'])->withInput();
+        if ($user && ! $actor->isSuperAdmin() && $user->hasOrganizationRole($organization->id, 'admin')) {
+            return back()->withErrors(['email' => 'Only platform administrators can manage another administrator.'])->withInput();
         }
 
-        if (! $user) {
-            $user = User::create([
-                ...$validated,
-                'password' => Str::random(64),
-                'is_admin' => true,
-                'organization_id' => $organization->id,
-            ]);
-        } else {
-            $user->update(['is_admin' => true, 'organization_id' => $organization->id]);
-        }
-
-        $status = Password::sendResetLink(
-            ['email' => $user->email],
-            fn ($recipient, $token) => $recipient->notify(new AdministratorInvitation($token, $organization->name))
-        );
-
-        if ($status !== Password::RESET_LINK_SENT) {
-            return back()->withErrors(['email' => __($status)])->withInput();
-        }
+        $user = DB::transaction(function () use ($user, $validated, $organization) {
+            if (! $user) {
+                $user = User::create([...$validated, 'password' => Str::random(64)]);
+                $user->organizations()->attach($organization->id, ['role' => 'admin']);
+                $status = Password::sendResetLink(
+                    ['email' => $user->email],
+                    fn ($recipient, $token) => $recipient->notify(new AdministratorInvitation($token, $organization->name))
+                );
+                if ($status !== Password::RESET_LINK_SENT) {
+                    throw ValidationException::withMessages(['email' => __($status)]);
+                }
+            } else {
+                $user->organizations()->syncWithoutDetaching([$organization->id => ['role' => 'admin']]);
+                $user->notify(new OrganizationAccessGranted($organization));
+            }
+            return $user;
+        });
 
         return redirect()->route($actor->isSuperAdmin() ? 'admin.organizations.show' : 'admin.users.index', $actor->isSuperAdmin() ? $organization : [])
-            ->with('success', "Administrator assigned. A secure password link was sent to {$user->email}.");
+            ->with('success', "Administrator access assigned. An email was sent to {$user->email}.");
     }
 
     public function index(Request $request): View
@@ -81,7 +80,7 @@ class OrganizationController extends Controller
             'search' => 'nullable|string|max:255',
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
         ]);
-        $organizations = Organization::withCount(['locations', 'volunteerEntries', 'users as administrators_count' => fn ($q) => $q->where('is_admin', true)])
+        $organizations = Organization::withCount(['locations', 'volunteerEntries', 'users as administrators_count' => fn ($q) => $q->where('organization_user.role', 'admin')])
             ->when(! empty($validated['search']), fn ($q) => $q->where('name', 'like', '%'.trim($validated['search']).'%'))
             ->when(! empty($validated['status']), fn ($q) => $q->where('is_active', $validated['status'] === 'active'))
             ->orderBy('name')

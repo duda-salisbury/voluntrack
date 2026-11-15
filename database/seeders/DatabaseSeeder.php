@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
             'name'     => 'Admin',
             'email'    => 'admin@voluntrack.test',
             'password' => bcrypt('password'),
-            'is_admin' => true,
+            'is_platform_admin' => true,
         ]);
 
         // 4. Back-fill: ensure all data is associated with the default org

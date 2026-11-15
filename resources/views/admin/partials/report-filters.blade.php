@@ -3,7 +3,7 @@
     $activeFilters = [];
     if (request('date_preset') && request('date_preset') !== 'custom') $activeFilters[] = $presets[request('date_preset')] ?? request('date_preset');
     elseif (request('date_from') || request('date_to')) $activeFilters[] = 'Dates: '.(request('date_from') ?: 'any start').' to '.(request('date_to') ?: 'any end');
-    if (auth()->user()->isSuperAdmin() && request('organization_id')) $activeFilters[] = 'Organization: '.($organizations->firstWhere('id', request('organization_id'))?->name ?? 'Selected');
+    if (auth()->user()->isPlatformWorkspace() && request('organization_id')) $activeFilters[] = 'Organization: '.($organizations->firstWhere('id', request('organization_id'))?->name ?? 'Selected');
     if (request('location_id')) $activeFilters[] = 'Location: '.($locations->firstWhere('id', request('location_id'))?->name ?? 'Selected');
     if (request('special_event_id')) $activeFilters[] = 'Event: '.($events->firstWhere('id', request('special_event_id'))?->name ?? 'Selected');
     if (request('volunteer_user_id')) $activeFilters[] = 'Account: '.($volunteers->firstWhere('id', request('volunteer_user_id'))?->name ?? 'Selected');
@@ -16,7 +16,7 @@
 <summary class="p-3 fw-semibold">Refine this view <span class="text-muted small fw-normal ms-2">{{ count($activeFilters) ? implode(' · ', $activeFilters) : 'All dates and contributions' }}</span></summary>
 <div class="card-body border-top">
     <form method="GET" action="{{ route($filterRoute) }}" class="row g-3">
-        @if(auth()->user()->isSuperAdmin())
+        @if(auth()->user()->isPlatformWorkspace())
         <div class="col-sm-6 col-xl-3"><label for="organization_id" class="form-label">Organization</label><select id="organization_id" name="organization_id" class="form-select"><option value="">All organizations</option>@foreach($organizations as $organization)<option value="{{ $organization->id }}" @selected(request('organization_id') == $organization->id)>{{ $organization->name }}</option>@endforeach</select></div>
         @endif
         <div class="col-sm-6 col-xl-3"><label for="date_preset" class="form-label">Date range</label><select id="date_preset" name="date_preset" class="form-select"><option value="">All dates / custom</option>@foreach($presets as $value => $label)<option value="{{ $value }}" @selected(request('date_preset') === $value)>{{ $label }}</option>@endforeach</select></div>

@@ -34,7 +34,7 @@ class VolunteerEntry extends Model
 
     public function organization(): BelongsTo
     {
-        return $this->belongsTo(Organization::class);
+        return $this->belongsTo(Organization::class)->withTrashed();
     }
 
     /**

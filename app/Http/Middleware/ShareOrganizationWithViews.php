@@ -22,8 +22,8 @@ class ShareOrganizationWithViews
         $org = $request->route('org');
 
         // Admin routes: resolve from the authenticated user
-        if (! $org && auth()->check()) {
-            $org = auth()->user()->organization;
+        if (! $org && auth()->check() && $request->is('admin*')) {
+            $org = auth()->user()->adminOrganization();
         }
 
         // Make $org available in every view rendered during this request

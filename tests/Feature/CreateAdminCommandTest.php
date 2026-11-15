@@ -57,13 +57,13 @@ class CreateAdminCommandTest extends TestCase
 
     public function test_it_does_not_overwrite_or_promote_an_existing_account(): void
     {
-        $user = User::factory()->create(['email' => 'admin@example.test', 'is_admin' => false]);
+        $user = User::factory()->create(['email' => 'admin@example.test']);
         $originalPassword = $user->password;
 
         $this->createAdmin()->assertFailed();
 
         $this->assertDatabaseCount('users', 1);
-        $this->assertFalse($user->fresh()->is_admin);
+        $this->assertFalse($user->fresh()->isSuperAdmin());
         $this->assertSame($originalPassword, $user->fresh()->password);
     }
 
@@ -135,7 +135,7 @@ class CreateAdminCommandTest extends TestCase
     {
         Notification::fake();
         foreach ([false, true] as $isAdmin) {
-            $user = User::factory()->create(['is_admin' => $isAdmin]);
+            $user = User::factory()->create(['is_platform_admin' => $isAdmin]);
             $original = $user->refresh()->getAttributes();
             $this->artisan('createAdmin', [
                 '--name' => 'Replacement', '--email' => $user->email, '--no-interaction' => true,
