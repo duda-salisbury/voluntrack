@@ -143,7 +143,7 @@ set `MAIL_MAILER=log` to avoid sending real messages.
 5. **Create an optional event.** Open **Special events**, create `Fall Trail
    Cleanup 2026`, enter its date or date range, and leave it available on the
    public form. Choose one or more event locations, or **Location not important**
-   to allow any organization location. New event hours must use an assigned
+   to allow any organization location. Individual event hours must use an assigned
    location; a single assigned location and the event start date are selected
    automatically on the public form. Volunteers can change the date or select
    another assigned location; future dates cannot be submitted. Existing hours
@@ -192,6 +192,12 @@ set `MAIL_MAILER=log` to avoid sending real messages.
 - Group entry saves up to 50 ordinary contributions together in a transaction.
   Names do not create or link accounts. Volunteer activity groups only
   account-linked records; unlinked contributions remain individual records.
+- Organization administrators can also record a **group total** without a
+  volunteer identity. A participant count is optional and is reported as
+  participations, not unique people. Group hours are included in totals,
+  matching, event/location reports, and CSV exports. Only enter hours not
+  already submitted individually; edit or remove the total if needed. Group
+  totals may use another location in the organization when overriding an event.
 - Report date presets and filters also apply to the streamed CSV export.
   Spreadsheet formula-like values are escaped. Durations are stored in decimal
   hours rounded to two places, including hours-and-minutes submissions.

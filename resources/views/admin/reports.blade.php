@@ -19,6 +19,8 @@
             <p class="eyebrow">People behind the hours</p><h2 class="h4">Estimated unique volunteers</h2><div class="display-4 fw-semibold mb-2">{{ number_format($stats['estimated_volunteers']) }}</div>
             <p class="text-muted small">An estimate, not a headcount: accounts, anonymous browser identifiers, and names are counted within each organization. Shared devices or names may combine people; different devices or signing in later may count someone twice.</p>
             <p class="small mb-0"><strong>{{ number_format($stats['unidentified_entries']) }} submissions</strong> have no usable identifier and are excluded from this estimate.</p>
+            <hr><p class="small mb-1"><strong>{{ number_format($stats['individual_hours'], 1) }} individual hours</strong> and <strong>{{ number_format($stats['group_hours'], 1) }} group-total hours</strong> are included in total hours.</p>
+            <p class="small mb-0"><strong>{{ number_format($stats['reported_participations']) }} reported participations</strong> are from group totals with a participant count; they are not unique volunteers and are excluded from the estimate.</p>
             <hr><p class="small mb-0"><strong>{{ number_format($stats['event_hours'], 1) }} hours</strong> are attributed to special events. These are already included in total hours, not added on top. Matching hours are an independent administrative classification.</p>
         </div></section></div>
     </div>
@@ -38,7 +40,7 @@
     <section class="card"><div class="card-body"><h2 class="h4 mb-3">Recent submissions</h2>
         <div class="table-responsive"><table class="table align-middle"><thead><tr><th scope="col">Received</th><th scope="col">Volunteer</th><th scope="col">Location / event</th><th scope="col" class="text-end">Hours</th></tr></thead><tbody>
             @forelse($recent as $entry)
-            <tr><td class="small text-nowrap">{{ $entry->created_at->format('M j, Y') }}<span class="d-block text-muted">Worked {{ $entry->volunteered_at->format('M j') }}</span></td><td><a href="{{ route('admin.entries.edit', $entry) }}">{{ $entry->name ?: 'Anonymous' }}</a>@if(auth()->user()->isPlatformWorkspace())<small class="d-block text-muted">{{ $entry->organization?->name }}</small>@endif</td><td>{{ $entry->location?->name }}<span class="d-block small text-muted">{{ $entry->specialEvent?->name ?? 'Ordinary volunteering' }}</span></td><td class="text-end fw-semibold">{{ number_format($entry->hours, 2) }}</td></tr>
+            <tr><td class="small text-nowrap">{{ $entry->created_at->format('M j, Y') }}<span class="d-block text-muted">Worked {{ $entry->volunteered_at->format('M j') }}</span></td><td><a href="{{ route('admin.entries.edit', $entry) }}">{{ $entry->is_group_total ? 'Group total' : ($entry->name ?: 'Anonymous') }}</a>@if(auth()->user()->isPlatformWorkspace())<small class="d-block text-muted">{{ $entry->organization?->name }}</small>@endif</td><td>{{ $entry->location?->name }}<span class="d-block small text-muted">{{ $entry->specialEvent?->name ?? 'Ordinary volunteering' }}</span></td><td class="text-end fw-semibold">{{ number_format($entry->hours, 2) }}</td></tr>
             @empty
             <tr><td colspan="4" class="text-muted py-4">No submissions yet.</td></tr>
             @endforelse

@@ -18,6 +18,56 @@ use Illuminate\Validation\Rule;
 
 class EntryController extends Controller
 {
+    public function createGroupTotal(): View
+    {
+        $orgId = auth()->user()->adminOrganizationId();
+        abort_if($orgId === null, 403, 'Group totals are available in an organization workspace.');
+
+        return $this->groupTotalForm($orgId);
+    }
+
+    public function storeGroupTotal(Request $request): RedirectResponse
+    {
+        $orgId = $request->user()->adminOrganizationId();
+        abort_if($orgId === null, 403, 'Group totals are available in an organization workspace.');
+        $data = $this->validateGroupTotal($request, $orgId);
+        $data['organization_id'] = $orgId;
+        $data['source'] = 'admin';
+        $data['is_group_total'] = true;
+        $data['created_by_admin_id'] = $request->user()->id;
+        $data['is_matched'] = $request->boolean('is_matched');
+        $data['matched_by_admin_id'] = $data['is_matched'] ? $request->user()->id : null;
+        VolunteerEntry::create($data);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Group total recorded.');
+    }
+
+    private function groupTotalForm(int $orgId, ?VolunteerEntry $entry = null): View
+    {
+        $locations = Location::withTrashed()->where('organization_id', $orgId)
+            ->where(fn ($query) => $query->whereNull('deleted_at')
+                ->when($entry, fn ($query) => $query->orWhere('id', $entry->location_id)))
+            ->orderBy('name')->get();
+        $events = SpecialEvent::with('locations')->where('organization_id', $orgId)->orderByDesc('starts_on')->get();
+
+        return view('admin.entries.group-total', compact('entry', 'locations', 'events'));
+    }
+
+    private function validateGroupTotal(Request $request, int $orgId, ?VolunteerEntry $entry = null): array
+    {
+        return $request->validate([
+            'location_id' => ['bail', 'required', 'integer', Rule::exists('locations', 'id')->where(fn ($query) => $query
+                ->where('organization_id', $orgId)->where(fn ($query) => $query->whereNull('deleted_at')
+                    ->when($entry, fn ($query) => $query->orWhere('id', $entry->location_id))))],
+            'special_event_id' => ['bail', 'nullable', 'integer', Rule::exists('special_events', 'id')->where('organization_id', $orgId)],
+            'volunteered_at' => 'required|date',
+            'hours' => 'required|numeric|decimal:0,2|min:0.01|max:'.VolunteerEntry::MAX_GROUP_HOURS,
+            'participant_count' => 'nullable|integer|min:1|max:'.VolunteerEntry::MAX_GROUP_PARTICIPANTS,
+            'is_matched' => 'boolean',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+    }
+
     public function createGroup(): View
     {
         $orgId = auth()->user()->adminOrganizationId();
@@ -148,6 +198,9 @@ class EntryController extends Controller
     {
         $this->authorizeEntry($entry);
         $orgId = $entry->organization_id;
+        if ($entry->is_group_total) {
+            return $this->groupTotalForm($orgId, $entry);
+        }
         $locations = Location::orderBy('name')
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
             ->get();
@@ -160,6 +213,18 @@ class EntryController extends Controller
     public function update(Request $request, VolunteerEntry $entry): RedirectResponse
     {
         $this->authorizeEntry($entry);
+        if ($entry->is_group_total) {
+            $validated = $this->validateGroupTotal($request, $entry->organization_id, $entry);
+            $validated['is_matched'] = $request->boolean('is_matched');
+            if ($validated['is_matched'] && ! $entry->is_matched) {
+                $validated['matched_by_admin_id'] = auth()->id();
+            } elseif (! $validated['is_matched']) {
+                $validated['matched_by_admin_id'] = null;
+            }
+            $entry->update($validated);
+
+            return redirect()->route('admin.dashboard')->with('success', 'Group total updated.');
+        }
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
             'location_id' => ['bail', 'required', 'integer', Rule::exists('locations', 'id')->where('organization_id', $entry->organization_id)->whereNull('deleted_at'), new EventLocation($request->input('special_event_id'), $entry->organization_id, $entry)],
@@ -203,7 +268,10 @@ class EntryController extends Controller
 
         match ($field) {
             'hours' => (function () use ($request, $entry) {
-                $request->validate(['value' => 'required|numeric|min:0.01|max:24']);
+                $rule = $entry->is_group_total
+                    ? 'required|numeric|decimal:0,2|min:0.01|max:'.VolunteerEntry::MAX_GROUP_HOURS
+                    : 'required|numeric|min:0.01|max:24';
+                $request->validate(['value' => $rule]);
                 $entry->update(['hours' => $request->input('value')]);
             })(),
             'is_matched' => (function () use ($request, $entry) {
@@ -220,7 +288,7 @@ class EntryController extends Controller
             default => abort(422, 'Unknown field'),
         };
 
-        $entry->load(['location', 'specialEvent', 'matchedByAdmin', 'organization']);
+        $entry->load(['location', 'specialEvent', 'matchedByAdmin', 'createdByAdmin', 'organization']);
         return response(view('admin.partials.entry-row', ['entry' => $entry, 'justSaved' => true]))
             ->header('HX-Trigger', 'statsUpdated');
     }

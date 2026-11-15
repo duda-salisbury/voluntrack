@@ -72,6 +72,8 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     // Entries
     Route::get('entries/group', [EntryController::class, 'createGroup'])->name('entries.group');
     Route::post('entries/group', [EntryController::class, 'storeGroup'])->name('entries.group.store');
+    Route::get('entries/group-total', [EntryController::class, 'createGroupTotal'])->name('entries.group-total');
+    Route::post('entries/group-total', [EntryController::class, 'storeGroupTotal'])->name('entries.group-total.store');
     Route::resource('entries', EntryController::class)->except(['index', 'show']);
     Route::post('entries/{entry}/toggle-match',  [EntryController::class, 'toggleMatch'])->name('entries.toggle-match');
     Route::post('entries/{entry}/update-notes',  [EntryController::class, 'updateNotes'])->name('entries.update-notes');

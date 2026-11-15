@@ -49,7 +49,7 @@ class DashboardController extends Controller
     public function index(Request $request): View
     {
         $query = $this->filteredQuery($request);
-        $entries = (clone $query)->with(['location', 'specialEvent', 'matchedByAdmin', 'organization'])
+        $entries = (clone $query)->with(['location', 'specialEvent', 'matchedByAdmin', 'createdByAdmin', 'organization'])
             ->orderByDesc('volunteered_at')->latest()->paginate(20)->withQueryString();
         $stats = $this->buildStats($query);
 
@@ -83,20 +83,20 @@ class DashboardController extends Controller
     public function volunteerActivity(Request $request): View
     {
         $query = $this->filteredQuery($request);
-        $accounts = (clone $query)->whereNotNull('volunteer_user_id')
+        $accounts = (clone $query)->where('is_group_total', false)->whereNotNull('volunteer_user_id')
             ->selectRaw('volunteer_user_id, SUM(hours) as total, COUNT(*) as submissions, MAX(volunteered_at) as last_worked')
             ->groupBy('volunteer_user_id')
             ->with('volunteerUser')
             ->orderByDesc('total')
             ->paginate(20)->withQueryString();
-        $unlinked = (clone $query)->whereNull('volunteer_user_id')->count();
+        $unlinked = (clone $query)->where('is_group_total', false)->whereNull('volunteer_user_id')->count();
 
         return view('admin.volunteer-activity', compact('accounts', 'unlinked') + $this->filterOptions($request));
     }
 
     public function export(Request $request): StreamedResponse
     {
-        $query = $this->filteredQuery($request)->with(['organization', 'location', 'specialEvent']);
+        $query = $this->filteredQuery($request)->with(['organization', 'location', 'specialEvent', 'createdByAdmin']);
         $actorId = $request->user()->id;
         $orgId = $request->user()->adminOrganizationId();
         if ($orgId === null && $request->filled('organization_id')) {
@@ -105,11 +105,11 @@ class DashboardController extends Controller
 
         return response()->streamDownload(function () use ($query, $actorId, $orgId) {
             $output = fopen('php://output', 'w');
-            fputcsv($output, ['Organization', 'Volunteer', 'Work date', 'Location', 'Special event', 'Hours', 'Matching', 'Source', 'Notes'], ',', '"', '');
+            fputcsv($output, ['Organization', 'Volunteer', 'Work date', 'Location', 'Special event', 'Hours', 'Matching', 'Source', 'Notes', 'Contribution type', 'Reported participants', 'Entered by'], ',', '"', '');
             foreach ($query->lazyById(200) as $entry) {
                 $row = [
                     $entry->organization?->name ?? 'Unavailable',
-                    $entry->name ?? 'Anonymous',
+                    $entry->is_group_total ? 'Group total' : ($entry->name ?? 'Anonymous'),
                     $entry->volunteered_at->format('Y-m-d'),
                     $entry->location?->name ?? 'Unavailable',
                     $entry->specialEvent?->name ?? '',
@@ -117,6 +117,9 @@ class DashboardController extends Controller
                     $entry->is_matched ? 'Yes' : 'No',
                     $entry->source ?? '',
                     $entry->notes ?? '',
+                    $entry->is_group_total ? 'Group total' : 'Individual',
+                    $entry->is_group_total && $entry->participant_count !== null ? (string) $entry->participant_count : '',
+                    $entry->is_group_total ? ($entry->createdByAdmin?->name ?? 'Unavailable') : '',
                 ];
                 $row = array_map(fn ($value) => preg_match('/^(?:[\\t\\r\\n]|[\\s\\x00-\\x1f]*[=+\\-@])/u', $value) ? "'".$value : $value, $row);
                 fputcsv($output, $row, ',', '"', '');
@@ -155,6 +158,9 @@ class DashboardController extends Controller
                 $query->where($field, $request->input($field));
             }
         }
+        if ($request->filled('volunteer_user_id') || $request->filled('volunteer')) {
+            $query->where('is_group_total', false);
+        }
         if ($request->filled('volunteer')) {
             $query->where('name', 'like', '%'.$request->input('volunteer').'%');
         }
@@ -185,7 +191,7 @@ class DashboardController extends Controller
 
     private function buildStats(Builder $query): array
     {
-        $identities = (clone $query)->select(['organization_id', 'volunteer_user_id', 'anon_token', 'name'])
+        $identities = (clone $query)->where('is_group_total', false)->select(['organization_id', 'volunteer_user_id', 'anon_token', 'name'])
             ->distinct()->get();
         $knownIdentities = $identities->map(function ($entry) {
             $identity = match (true) {
@@ -201,10 +207,13 @@ class DashboardController extends Controller
         return [
             'total_entries' => (clone $query)->count(),
             'total_hours' => (float) (clone $query)->sum('hours'),
+            'individual_hours' => (float) (clone $query)->where('is_group_total', false)->sum('hours'),
+            'group_hours' => (float) (clone $query)->where('is_group_total', true)->sum('hours'),
+            'reported_participations' => (int) (clone $query)->where('is_group_total', true)->sum('participant_count'),
             'matched_hours' => (float) (clone $query)->where('is_matched', true)->sum('hours'),
             'unmatched_hours' => (float) (clone $query)->where('is_matched', false)->sum('hours'),
             'estimated_volunteers' => $knownIdentities->count(),
-            'unidentified_entries' => (clone $query)->whereNull('volunteer_user_id')->whereNull('anon_token')
+            'unidentified_entries' => (clone $query)->where('is_group_total', false)->whereNull('volunteer_user_id')->whereNull('anon_token')
                 ->where(fn ($q) => $q->whereNull('name')->orWhere('name', ''))->count(),
             'event_hours' => (float) (clone $query)->whereNotNull('special_event_id')->sum('hours'),
         ];

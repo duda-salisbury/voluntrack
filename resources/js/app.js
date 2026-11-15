@@ -140,6 +140,14 @@ function initializeForms() {
 document.addEventListener('change', event => {
     const eventForm = event.target.closest('[data-event-locations]');
     const volunteerForm = event.target.closest('[data-volunteer-context]');
+    const groupTotalForm = event.target.closest('[data-group-total]');
+    if (groupTotalForm && event.target.matches('[name="special_event_id"]') && event.target.value) {
+        const selected = event.target.selectedOptions[0];
+        const location = groupTotalForm.querySelector('[name="location_id"]');
+        const ids = selected.dataset.locationIds.split(',').filter(Boolean);
+        groupTotalForm.querySelector('[name="volunteered_at"]').value = selected.dataset.eventDate;
+        location.value = ids.length === 1 && Array.from(location.options).some(option => option.value === ids[0]) ? ids[0] : '';
+    }
     if (volunteerForm && event.target.matches('[name="special_event_id"]') && event.target.value) {
         volunteerForm.querySelector('[name="volunteered_at"]').value = event.target.selectedOptions[0].dataset.eventDate;
         volunteerForm.querySelector('[name="location_id"]').value = '';
@@ -188,6 +196,27 @@ document.addEventListener('toggle', async event => {
 }, true);
 
 document.addEventListener('click', async event => {
+    const calculate = event.target.closest('[data-calculate-group-total]');
+    if (calculate) {
+        const form = calculate.closest('[data-group-total]');
+        const participants = form.querySelector('[name="participant_count"]');
+        const perPerson = form.querySelector('#hours-per-participant');
+        const total = form.querySelector('[name="hours"]');
+        const status = form.querySelector('[data-calculation-status]');
+        const hours = Number(perPerson.value);
+        if (!/^\d+$/.test(participants.value) || !participants.checkValidity() || !perPerson.value || !Number.isFinite(hours) || hours <= 0 || hours > 24) {
+            status.textContent = 'Enter a valid participant count and between 0 and 24 hours per participant.';
+            return;
+        }
+        const calculated = Math.round(Number(participants.value) * hours * 100) / 100;
+        if (calculated < Number(total.min) || calculated > Number(total.max)) {
+            status.textContent = `The calculated total must be between ${total.min} and ${total.max} volunteer-hours.`;
+            return;
+        }
+        total.value = calculated.toFixed(2);
+        status.textContent = `Total volunteer-hours set to ${total.value}. You can still change it.`;
+        return;
+    }
     const contextToggle = event.target.closest('[data-context-toggle]');
     if (contextToggle) {
         const form = contextToggle.closest('[data-volunteer-context]');

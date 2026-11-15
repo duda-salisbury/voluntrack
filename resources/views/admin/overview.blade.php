@@ -5,7 +5,7 @@
     @if($organization)
         <div class="page-heading">
             <div><p class="eyebrow">{{ $organization->name }} / Overview</p><h1>Welcome back, {{ Str::before(auth()->user()->name, ' ') }}.</h1><p class="text-muted mb-0">Here's how your community is showing up.</p></div>
-            <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" href="{{ route('admin.entries.create') }}">Add hours</a><a class="btn btn-outline-primary" href="{{ route('admin.entries.group') }}">Add group hours</a><a class="btn btn-outline-primary" href="#share-form">Share volunteer form</a></div>
+            <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" href="{{ route('admin.entries.create') }}">Add individual hours</a><a class="btn btn-outline-primary" href="{{ route('admin.entries.group') }}">Add multiple volunteers</a><a class="btn btn-outline-primary" href="{{ route('admin.entries.group-total') }}">Add group total</a><a class="btn btn-outline-primary" href="#share-form">Share volunteer form</a></div>
         </div>
         <div class="section-heading"><div><p class="eyebrow mb-1">Your community</p><h2 class="h4">The last 30 days</h2><p class="small text-muted">Hours and submissions received in the last 30 days.</p></div><a href="{{ route('admin.reports') }}">Explore reports &rarr;</a></div>
         <div class="row g-3 mb-4">
@@ -52,7 +52,7 @@
     @endif
     <section class="card"><div class="card-body"><div class="section-heading"><div><h2 class="h4 mb-1">Recent activity</h2><p class="small text-muted mb-0">Latest submissions received in the last 30 days{{ $organization ? '' : ' across the platform' }}.</p></div><a href="{{ route('admin.dashboard') }}">View volunteer hours &rarr;</a></div>
         @forelse($recent as $entry)
-            <div class="contribution-item"><div><a class="fw-semibold" href="{{ route('admin.entries.edit', $entry) }}">{{ $entry->name ?: 'Anonymous volunteer' }}</a><span class="small d-block text-muted">@unless($organization){{ $entry->organization?->name ?? 'Organization unavailable' }} &middot; @endunless{{ $entry->location?->name ?? 'Location unavailable' }} &middot; volunteered {{ $entry->volunteered_at->format('M j, Y') }}@if($entry->specialEvent) &middot; {{ $entry->specialEvent->name }}@endif</span></div><strong class="text-nowrap">{{ number_format($entry->hours, 1) }} h</strong></div>
+            <div class="contribution-item"><div><a class="fw-semibold" href="{{ route('admin.entries.edit', $entry) }}">{{ $entry->is_group_total ? 'Group total' : ($entry->name ?: 'Anonymous volunteer') }}</a><span class="small d-block text-muted">@unless($organization){{ $entry->organization?->name ?? 'Organization unavailable' }} &middot; @endunless{{ $entry->location?->name ?? 'Location unavailable' }} &middot; volunteered {{ $entry->volunteered_at->format('M j, Y') }}@if($entry->specialEvent) &middot; {{ $entry->specialEvent->name }}@endif</span></div><strong class="text-nowrap">{{ number_format($entry->hours, 1) }} h</strong></div>
         @empty
             <div class="empty-state"><h3 class="h5">No recent submissions yet.</h3><p class="mb-0">New contributions will appear here as they come in.</p></div>
         @endforelse

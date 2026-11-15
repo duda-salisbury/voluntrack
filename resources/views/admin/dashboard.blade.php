@@ -4,7 +4,7 @@
 <div class="container-fluid workspace" id="hours-workspace">
     <div class="page-heading">
         <div><p class="eyebrow">{{ $org?->name ?? 'All organizations' }} / Contributions</p><h1>Volunteer hours</h1><p class="text-muted mb-0">Every contribution, in one place. Filter, review, and keep the details accurate.</p></div>
-        <div class="d-flex flex-wrap gap-2">@unless(auth()->user()->isPlatformWorkspace())<a href="{{ route('admin.entries.group') }}" class="btn btn-outline-primary">Add group hours</a>@endunless<a href="{{ route('admin.entries.create') }}" class="btn btn-primary">Add hours</a></div>
+        <div class="d-flex flex-wrap gap-2"><a href="{{ route('admin.entries.create') }}" class="btn btn-primary">Add individual hours</a>@unless(auth()->user()->isPlatformWorkspace())<a href="{{ route('admin.entries.group') }}" class="btn btn-outline-primary">Add multiple volunteers</a><a href="{{ route('admin.entries.group-total') }}" class="btn btn-outline-primary">Add group total</a>@endunless</div>
     </div>
     <div class="row g-3 mb-4" id="stats-cards"
          hx-get="{{ route('admin.stats', request()->query()) }}" hx-trigger="statsUpdated from:body" hx-swap="innerHTML">
@@ -16,7 +16,7 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <caption class="visually-hidden">Volunteer submissions matching the selected filters</caption>
-                <thead><tr><th scope="col">Date</th><th scope="col">Volunteer</th>@if(auth()->user()->isPlatformWorkspace())<th scope="col">Organization</th>@endif<th scope="col">Location / event</th><th scope="col">Hours</th><th scope="col">Matching</th><th scope="col">Notes</th><th scope="col">Actions</th></tr></thead>
+                <thead><tr><th scope="col">Date</th><th scope="col">Volunteer / group</th>@if(auth()->user()->isPlatformWorkspace())<th scope="col">Organization</th>@endif<th scope="col">Location / event</th><th scope="col">Hours</th><th scope="col">Matching</th><th scope="col">Notes</th><th scope="col">Actions</th></tr></thead>
                 <tbody>
                     @forelse($entries as $entry)
                         @include('admin.partials.entry-row')

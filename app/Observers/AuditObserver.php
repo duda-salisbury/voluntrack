@@ -16,7 +16,7 @@ class AuditObserver
     {
         if ($model instanceof VolunteerEntry) {
             $admin = $model->source === 'admin';
-            $description = ($admin ? 'Administrator recorded volunteer hours' : 'Volunteer hours submitted')
+            $description = ($model->is_group_total ? 'Administrator recorded a group total' : ($admin ? 'Administrator recorded volunteer hours' : 'Volunteer hours submitted'))
                 .' — '.number_format((float) $model->hours, 2, '.', '').' hours';
             $this->record($model, $admin ? 'entry.admin_created' : 'entry.submitted', 'hours', $description,
                 $model->volunteer_user_id, ['hours' => (float) $model->hours]);
@@ -37,7 +37,7 @@ class AuditObserver
         $fields = $this->changedFields($model);
         $metadata = $fields ? ['changes' => $fields] : null;
         if ($model instanceof VolunteerEntry) {
-            $this->record($model, 'entry.updated', 'hours', 'Updated a volunteer hour entry', $model->volunteer_user_id, $metadata);
+            $this->record($model, 'entry.updated', 'hours', $model->is_group_total ? 'Updated a group total' : 'Updated a volunteer hour entry', $model->volunteer_user_id, $metadata);
         } elseif ($model instanceof Organization) {
             if ($model->wasChanged('is_active')) {
                 $this->record($model, $model->is_active ? 'organization.activated' : 'organization.deactivated',
@@ -59,7 +59,7 @@ class AuditObserver
             $model instanceof VolunteerEntry => [
                 'hours' => 'Hours', 'volunteered_at' => 'Date', 'location_id' => 'Location',
                 'special_event_id' => 'Event', 'name' => 'Volunteer name', 'notes' => 'Notes',
-                'is_matched' => 'Match status', 'volunteer_user_id' => 'Linked account',
+                'is_matched' => 'Match status', 'volunteer_user_id' => 'Linked account', 'participant_count' => 'Reported participants',
             ],
             $model instanceof Organization => [
                 'name' => 'Name', 'slug' => 'Public URL', 'logo_path' => 'Logo', 'accent_color' => 'Brand color', 'settings' => 'Form settings',
@@ -81,7 +81,7 @@ class AuditObserver
     public function deleted(Model $model): void
     {
         if ($model instanceof VolunteerEntry) {
-            $this->record($model, 'entry.deleted', 'hours', 'Deleted a volunteer hour entry', $model->volunteer_user_id);
+            $this->record($model, 'entry.deleted', 'hours', $model->is_group_total ? 'Deleted a group total' : 'Deleted a volunteer hour entry', $model->volunteer_user_id);
         } elseif ($model instanceof Organization) {
             $this->record($model, 'organization.archived', 'organization', 'Archived the organization');
         } elseif ($model instanceof Location) {

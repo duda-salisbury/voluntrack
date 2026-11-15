@@ -1,8 +1,8 @@
 @extends('layouts.admin')
-@section('title', 'Add group hours')
+@section('title', 'Add multiple volunteers')
 @section('content')
 <div class="container-fluid workspace group-entry">
-    <div class="page-heading"><div><p class="eyebrow">Volunteer hours / Group entry</p><h1>Record a group's impact</h1><p class="text-muted mb-0">Choose the shared details, then add each person's contribution. Nothing is saved until you submit.</p></div></div>
+    <div class="page-heading"><div><p class="eyebrow">Volunteer hours / Multiple volunteers</p><h1>Add multiple volunteers</h1><p class="text-muted mb-0">Choose the shared details, then add each person's contribution. Nothing is saved until you submit.</p></div><a class="btn btn-outline-secondary" href="{{ route('admin.entries.group-total', request()->only('event')) }}">Record a group total instead</a></div>
     <form method="POST" action="{{ route('admin.entries.group.store') }}" data-group-form data-event-locations>
         @csrf
         <section class="card mb-4"><div class="card-body"><h2 class="h5 mb-3">Shared details</h2><div class="row g-3">

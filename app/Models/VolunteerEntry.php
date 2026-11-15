@@ -11,6 +11,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class VolunteerEntry extends Model
 {
     use SoftDeletes;
+
+    public const MAX_GROUP_HOURS = 99999.99;
+    public const MAX_GROUP_PARTICIPANTS = 100000;
+
     protected $fillable = [
         'organization_id',
         'volunteer_user_id',
@@ -24,12 +28,17 @@ class VolunteerEntry extends Model
         'is_matched',
         'matched_by_admin_id',
         'notes',
+        'is_group_total',
+        'participant_count',
+        'created_by_admin_id',
     ];
 
     protected $casts = [
         'volunteered_at' => 'date',
         'hours' => 'decimal:2',
         'is_matched' => 'boolean',
+        'is_group_total' => 'boolean',
+        'participant_count' => 'integer',
     ];
 
     public function organization(): BelongsTo
@@ -64,6 +73,11 @@ class VolunteerEntry extends Model
     public function matchedByAdmin(): BelongsTo
     {
         return $this->belongsTo(User::class, 'matched_by_admin_id');
+    }
+
+    public function createdByAdmin(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_admin_id')->withTrashed();
     }
 
     /**

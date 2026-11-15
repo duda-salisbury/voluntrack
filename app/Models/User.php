@@ -43,7 +43,7 @@ class User extends Authenticatable
 
     public function volunteerEntries(): HasMany
     {
-        return $this->hasMany(VolunteerEntry::class, 'volunteer_user_id');
+        return $this->hasMany(VolunteerEntry::class, 'volunteer_user_id')->where('volunteer_entries.is_group_total', false);
     }
 
     public function isSuperAdmin(): bool

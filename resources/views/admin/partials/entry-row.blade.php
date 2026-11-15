@@ -3,8 +3,14 @@
         {{ $entry->volunteered_at->format('M j, Y') }}
     </td>
     <td>
-        {{ $entry->name ?: 'Anonymous' }}
-        @if($entry->volunteer_user_id)
+        @if($entry->is_group_total)
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Group total</span>
+            @if($entry->participant_count !== null)<span class="d-block small text-muted">{{ number_format($entry->participant_count) }} reported {{ Str::plural('participant', $entry->participant_count) }}</span>@endif
+            <span class="d-block small text-muted">Entered by {{ $entry->createdByAdmin?->name ?? 'Unavailable account' }}</span>
+        @else
+            {{ $entry->name ?: 'Anonymous' }}
+        @endif
+        @if(! $entry->is_group_total && $entry->volunteer_user_id)
             <span class="badge bg-primary ms-1" title="Registered volunteer account">Account</span>
         @endif
     </td>
@@ -26,7 +32,7 @@
             style="width: 80px;"
             value="{{ $entry->hours }}"
             min="0.01"
-            max="24"
+            max="{{ $entry->is_group_total ? \App\Models\VolunteerEntry::MAX_GROUP_HOURS : 24 }}"
             step="any"
             name="value"
             id="entry-hours-{{ $entry->id }}"
