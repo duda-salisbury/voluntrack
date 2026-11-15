@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\SpecialEvent;
 use App\Models\User;
 use App\Models\VolunteerEntry;
+use App\Rules\EventLocation;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +23,7 @@ class EntryController extends Controller
         $orgId = auth()->user()->adminOrganizationId();
         abort_if($orgId === null, 403, 'Group entry is available in an organization workspace.');
         $locations = Location::where('organization_id', $orgId)->orderBy('name')->get();
-        $events = SpecialEvent::where('organization_id', $orgId)->orderByDesc('starts_on')->get();
+        $events = SpecialEvent::with('locations')->where('organization_id', $orgId)->orderByDesc('starts_on')->get();
 
         return view('admin.entries.group', compact('locations', 'events'));
     }
@@ -32,8 +33,8 @@ class EntryController extends Controller
         $orgId = auth()->user()->adminOrganizationId();
         abort_if($orgId === null, 403, 'Group entry is available in an organization workspace.');
         $validator = Validator::make($request->all(), [
-            'location_id' => ['required', Rule::exists('locations', 'id')->where('organization_id', $orgId)->whereNull('deleted_at')],
-            'special_event_id' => ['nullable', Rule::exists('special_events', 'id')->where('organization_id', $orgId)],
+            'location_id' => ['bail', 'required', 'integer', Rule::exists('locations', 'id')->where('organization_id', $orgId)->whereNull('deleted_at'), new EventLocation($request->input('special_event_id'), $orgId)],
+            'special_event_id' => ['bail', 'nullable', 'integer', Rule::exists('special_events', 'id')->where('organization_id', $orgId)],
             'volunteered_at' => 'required|date',
             'rows' => 'required|array|min:1|max:50',
             'rows.*.name' => 'required|string|max:255',
@@ -95,7 +96,7 @@ class EntryController extends Controller
 
         $locationsJson  = $locations->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'org' => $l->organization_id])->values();
         $volunteersJson = $volunteers->flatMap(fn ($v) => $v->organizations->map(fn ($org) => ['id' => $v->id, 'name' => $v->name, 'email' => $v->email, 'org' => $org->id]))->values();
-        $events = SpecialEvent::with('organization')->orderBy('name')
+        $events = SpecialEvent::with(['organization', 'locations'])->orderBy('name')
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))->get();
 
         return view('admin.entries.create', compact('locations', 'organizations', 'volunteers', 'locationsJson', 'volunteersJson', 'events'));
@@ -116,8 +117,8 @@ class EntryController extends Controller
             'name'               => 'nullable|string|max:255',
             'volunteer_user_id'  => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')->where(fn ($query) => $query
                 ->whereExists(fn ($q) => $q->selectRaw('1')->from('organization_user')->whereColumn('organization_user.user_id', 'users.id')->where('organization_user.organization_id', $orgId)))],
-            'location_id'        => ['required', Rule::exists('locations', 'id')->where('organization_id', $orgId)->whereNull('deleted_at')],
-            'special_event_id'   => ['nullable', Rule::exists('special_events', 'id')->where('organization_id', $orgId)],
+            'location_id'        => ['bail', 'required', 'integer', Rule::exists('locations', 'id')->where('organization_id', $orgId)->whereNull('deleted_at'), new EventLocation($request->input('special_event_id'), (int) $orgId)],
+            'special_event_id'   => ['bail', 'nullable', 'integer', Rule::exists('special_events', 'id')->where('organization_id', $orgId)],
             'volunteered_at'     => 'required|date',
             'hours'              => 'required|numeric|min:0.01|max:24',
             'is_matched'         => 'boolean',
@@ -151,7 +152,7 @@ class EntryController extends Controller
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
             ->get();
 
-        $events = SpecialEvent::where('organization_id', $orgId)->orderBy('name')->get();
+        $events = SpecialEvent::with('locations')->where('organization_id', $orgId)->orderBy('name')->get();
 
         return view('admin.entries.edit', compact('entry', 'locations', 'events'));
     }
@@ -161,8 +162,8 @@ class EntryController extends Controller
         $this->authorizeEntry($entry);
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
-            'location_id' => ['required', Rule::exists('locations', 'id')->where('organization_id', $entry->organization_id)->whereNull('deleted_at')],
-            'special_event_id' => ['nullable', Rule::exists('special_events', 'id')->where('organization_id', $entry->organization_id)],
+            'location_id' => ['bail', 'required', 'integer', Rule::exists('locations', 'id')->where('organization_id', $entry->organization_id)->whereNull('deleted_at'), new EventLocation($request->input('special_event_id'), $entry->organization_id, $entry)],
+            'special_event_id' => ['bail', 'nullable', 'integer', Rule::exists('special_events', 'id')->where('organization_id', $entry->organization_id)],
             'volunteered_at' => 'required|date',
             'hours' => 'required|numeric|min:0.01|max:24',
             'is_matched' => 'boolean',

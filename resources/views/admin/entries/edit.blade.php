@@ -12,7 +12,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="{{ route('admin.entries.update', $entry) }}">
+            <form method="POST" action="{{ route('admin.entries.update', $entry) }}" data-event-locations data-existing-event="{{ $entry->special_event_id }}" data-existing-location="{{ $entry->location_id }}">
                 @csrf
                 @method('PUT')
 
@@ -38,6 +38,7 @@
                         @error('location_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <div class="form-text" data-event-location-status role="status"></div>
                     </div>
 
                     <div class="col-12 mb-4">
@@ -45,7 +46,7 @@
                         <select name="special_event_id" id="special_event_id" class="form-select @error('special_event_id') is-invalid @enderror">
                             <option value="">Everyday volunteering / no event</option>
                             @foreach($events as $event)
-                                <option value="{{ $event->id }}" @selected(old('special_event_id', $entry->special_event_id) == $event->id)>{{ $event->name }}{{ $event->is_active ? '' : ' (inactive)' }}</option>
+                                <option value="{{ $event->id }}" data-location-ids="{{ $event->locations->pluck('id')->join(',') }}" @selected(old('special_event_id', $entry->special_event_id) == $event->id)>{{ $event->name }}{{ $event->is_active ? '' : ' (inactive)' }}</option>
                             @endforeach
                         </select>
                         @error('special_event_id')<div class="invalid-feedback">{{ $message }}</div>@enderror

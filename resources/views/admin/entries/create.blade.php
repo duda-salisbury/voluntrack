@@ -12,7 +12,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="{{ route('admin.entries.store') }}">
+            <form method="POST" action="{{ route('admin.entries.store') }}" data-event-locations>
                 @csrf
 
                 <div class="row">
@@ -72,6 +72,7 @@
                         @error('location_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <div class="form-text" data-event-location-status role="status"></div>
                     </div>
 
                     <div class="col-12 mb-4">
@@ -79,7 +80,7 @@
                         <select name="special_event_id" id="special_event_id" class="form-select @error('special_event_id') is-invalid @enderror">
                             <option value="">Everyday volunteering / no event</option>
                             @foreach($events as $event)
-                                <option value="{{ $event->id }}" data-org="{{ $event->organization_id }}" @selected(old('special_event_id') == $event->id)>{{ $event->name }}@if(auth()->user()->isPlatformWorkspace()) ({{ $event->organization?->name }})@endif</option>
+                                <option value="{{ $event->id }}" data-org="{{ $event->organization_id }}" data-location-ids="{{ $event->locations->pluck('id')->join(',') }}" @selected(old('special_event_id') == $event->id)>{{ $event->name }}@if(auth()->user()->isPlatformWorkspace()) ({{ $event->organization?->name }})@endif</option>
                             @endforeach
                         </select>
                         @error('special_event_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -236,6 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (String(o.id) === String(current)) opt.selected = true;
                 locationSel.appendChild(opt);
             });
+        eventSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     function escapeHtml(str) {

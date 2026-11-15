@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SpecialEvent extends Model
@@ -26,6 +27,11 @@ class SpecialEvent extends Model
     public function volunteerEntries(): HasMany
     {
         return $this->hasMany(VolunteerEntry::class);
+    }
+
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class)->withTrashed();
     }
 
     public function scheduleStatus(): string

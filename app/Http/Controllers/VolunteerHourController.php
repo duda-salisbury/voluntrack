@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\Organization;
 use App\Models\VolunteerEntry;
+use App\Rules\EventLocation;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class VolunteerHourController extends Controller
             ->active()
             ->orderBy('name')
             ->get();
-        $events = $org->specialEvents()->where('is_active', true)->orderByDesc('starts_on')->get();
+        $events = $org->specialEvents()->with('locations')->where('is_active', true)->orderByDesc('starts_on')->get();
         abort_if($request->filled('event') && ! $events->contains(fn ($event) => (string) $event->id === $request->input('event')),
             404, 'This special event is unavailable. Open the organization logging form without an event to record ordinary volunteering.');
 
@@ -53,8 +54,8 @@ class VolunteerHourController extends Controller
 
         $rules = [
             'name'           => ($config->requireName ? 'required' : 'nullable') . '|string|max:255',
-            'location_id'    => ['required', Rule::exists('locations', 'id')->where('organization_id', $org->id)->where('is_active', true)->whereNull('deleted_at')],
-            'special_event_id' => ['nullable', Rule::exists('special_events', 'id')->where('organization_id', $org->id)->where('is_active', true)],
+            'location_id'    => ['bail', 'required', 'integer', Rule::exists('locations', 'id')->where('organization_id', $org->id)->where('is_active', true)->whereNull('deleted_at'), new EventLocation($request->input('special_event_id'), $org->id)],
+            'special_event_id' => ['bail', 'nullable', 'integer', Rule::exists('special_events', 'id')->where('organization_id', $org->id)->where('is_active', true)],
             'volunteered_at' => 'required|date|before_or_equal:today',
             'hours'          => 'required|numeric|min:0.01|max:24',
             // Anonymous continuity token — client-generated UUID, never required

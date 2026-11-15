@@ -146,8 +146,8 @@ class LocationController extends Controller
         $validated['source']          = $validated['source'] ?? $location->source;
         $validated['is_active']       = $request->boolean('is_active', false);
 
-        if ((int) $resolvedOrgId !== $location->organization_id && $location->volunteerEntries()->exists()) {
-            return back()->withErrors(['organization_id' => 'This location has recorded hours and cannot be moved to another organization. Create a new location there instead.'])->withInput();
+        if ((int) $resolvedOrgId !== $location->organization_id && ($location->volunteerEntries()->exists() || $location->specialEvents()->exists())) {
+            return back()->withErrors(['organization_id' => 'This location has recorded hours or assigned events and cannot be moved to another organization. Create a new location there instead.'])->withInput();
         }
 
         // Regenerate slug only if the name changed
@@ -170,6 +170,10 @@ class LocationController extends Controller
         // Prevent deletion if entries exist; disable instead
         if ($location->volunteerEntries()->exists()) {
             return back()->with('error', '"' . $name . '" has existing entries and cannot be deleted. Disable it instead.');
+        }
+
+        if ($location->specialEvents()->exists()) {
+            return back()->with('error', '"' . $name . '" is assigned to a special event. Remove it from the event or disable it instead.');
         }
 
         $location->delete();

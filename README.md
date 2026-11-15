@@ -16,8 +16,10 @@ npm run build
 ```
 
 The new migration adds `special_events` and a nullable `special_event_id` on
-volunteer entries. Existing hours, locations, accounts, and organization settings
-are retained. Back up your database before production migrations as usual.
+volunteer entries. An additional migration links events to optional selected
+locations; existing events continue to allow any location. Existing hours,
+locations, accounts, and organization settings are retained. Back up your database
+before production migrations as usual.
 Do not use `migrate:fresh` against existing data.
 
 Set `APP_URL` to the public HTTPS origin. Configure a working Laravel mail
@@ -119,7 +121,11 @@ set `MAIL_MAILER=log` to avoid sending real messages.
    it active. Import/source references are available under the advanced section.
 5. **Create an optional event.** Open **Special events**, create `Fall Trail
    Cleanup 2026`, enter its date or date range, and leave it available on the
-   public form. Its overview includes a preselected-event logging link.
+   public form. Choose one or more event locations, or **Location not important**
+   to allow any organization location. New event hours must use an assigned
+   location; a single assigned location is selected automatically on hour-entry
+   forms. Existing hours are not changed. Its overview includes a
+   preselected-event logging link.
 6. **Share the form.** Copy the public link or display its QR code from **Overview**:
    `/qcnemba/log-hours`. Existing `/qcnemba` bookmarks continue to
    work. Event links use `/qcnemba/log-hours?event=EVENT_ID`.

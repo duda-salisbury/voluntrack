@@ -6,6 +6,57 @@ function showRequestError(message) {
     error.focus();
 }
 
+function updateEventLocations(form) {
+    const eventSelect = form.querySelector('[name="special_event_id"]');
+    const locationSelect = form.querySelector('[name="location_id"]');
+    const status = form.querySelector('[data-event-location-status]');
+    if (!eventSelect || !locationSelect || !status) return;
+
+    const ids = eventSelect.selectedOptions[0]?.dataset.locationIds?.split(',').filter(Boolean) ?? [];
+    let available = 0;
+    for (const option of locationSelect.options) {
+        if (!option.value) continue;
+        const historic = eventSelect.value === form.dataset.existingEvent && option.value === form.dataset.existingLocation;
+        const allowed = ids.length === 0 || ids.includes(option.value) || historic;
+        option.hidden = !allowed;
+        option.disabled = !allowed;
+        if (allowed) available++;
+        if (!allowed && option.selected) locationSelect.value = '';
+    }
+    const assignedLocation = ids.length === 1
+        ? Array.from(locationSelect.options).find(option => option.value === ids[0] && !option.disabled)
+        : null;
+    if (assignedLocation && !locationSelect.value) locationSelect.value = assignedLocation.value;
+
+    const historicalLocation = eventSelect.value === form.dataset.existingEvent
+        && locationSelect.value === form.dataset.existingLocation
+        && !ids.includes(locationSelect.value);
+    status.textContent = ids.length
+        ? (historicalLocation ? 'This entry keeps its original location.'
+            : assignedLocation ? "This event's location is selected automatically."
+                : available ? 'Only locations assigned to this event can be selected.'
+                    : 'No assigned locations are available. Contact an administrator or choose another event.')
+        : '';
+}
+
+function updateEventLocationChoices(form) {
+    const organization = form.querySelector('[name="organization_id"]');
+    const mode = form.querySelector('[name="location_mode"]:checked')?.value;
+    const choices = form.querySelectorAll('[data-location-choice]');
+    const status = form.querySelector('[data-location-choices-status]');
+    let available = 0;
+    choices.forEach(choice => {
+        const matches = !organization || choice.dataset.org === organization.value;
+        choice.hidden = !matches;
+        const checkbox = choice.querySelector('input');
+        checkbox.disabled = !matches || mode !== 'selected';
+        if (matches) available++;
+    });
+    status.textContent = organization && !organization.value
+        ? 'Choose an organization to see its locations.'
+        : (!available && choices.length ? 'No locations are available for this organization.' : '');
+}
+
 function initializeForms() {
     document.querySelectorAll('[data-anon-token]').forEach(input => {
         if (input.value) return;
@@ -40,11 +91,18 @@ function initializeForms() {
             document.querySelector('[data-location-status]').textContent = 'Your location cannot be remembered in this browser.';
         }
     });
+    document.querySelectorAll('[data-event-locations]').forEach(updateEventLocations);
+    document.querySelectorAll('[data-event-location-choices]').forEach(updateEventLocationChoices);
     const summary = document.querySelector('[data-validation-summary]');
     if (summary) summary.focus();
 }
 
 document.addEventListener('change', event => {
+    const eventForm = event.target.closest('[data-event-locations]');
+    if (eventForm && event.target.matches('[name="special_event_id"]')) updateEventLocations(eventForm);
+    const choicesForm = event.target.closest('[data-event-location-choices]');
+    if (choicesForm && event.target.matches('[name="organization_id"], [name="location_mode"]')) updateEventLocationChoices(choicesForm);
+
     const select = event.target.closest('[data-remember-location]');
     if (!select) return;
     try {

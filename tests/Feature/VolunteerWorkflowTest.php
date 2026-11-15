@@ -325,6 +325,72 @@ class VolunteerWorkflowTest extends TestCase
         $this->put(route('admin.special-events.update', $event), [])->assertForbidden();
     }
 
+    public function test_event_locations_can_be_selected_and_are_scoped_to_the_event_organization(): void
+    {
+        $organization = $this->organization();
+        $other = $this->organization('other');
+        $first = $this->location($organization);
+        $second = Location::create(['organization_id' => $organization->id, 'name' => 'Second', 'slug' => 'second', 'is_active' => true]);
+        $foreign = $this->location($other);
+        $data = ['name' => 'Cleanup', 'starts_on' => '2026-10-01', 'is_active' => 1, 'location_mode' => 'selected'];
+        $this->actingAs($this->administrator($organization));
+        $this->get(route('admin.special-events.create'))->assertOk()->assertSee('Location not important');
+        $this->post(route('admin.special-events.store'), $data)->assertSessionHasErrors('location_ids');
+        $this->post(route('admin.special-events.store'), $data + ['location_ids' => [$foreign->id]])->assertSessionHasErrors('location_ids.0');
+        $this->post(route('admin.special-events.store'), $data + ['location_ids' => [$first->id, $second->id]])->assertSessionHasNoErrors();
+        $event = SpecialEvent::firstOrFail();
+        $this->assertCount(2, $event->locations);
+        $this->get(route('admin.special-events.edit', $event))->assertOk()->assertSee('Second');
+        $this->get(route('admin.special-events.show', $event))->assertOk()->assertSee('Second');
+        $this->put(route('admin.special-events.update', $event), $data + ['location_ids' => [$second->id]])->assertSessionHasNoErrors();
+        $this->assertEquals([$second->id], $event->fresh()->locations->modelKeys());
+        $this->put(route('admin.special-events.update', $event), array_merge($data, ['location_mode' => 'any']))->assertSessionHasNoErrors();
+        $this->assertCount(0, $event->fresh()->locations);
+    }
+
+    public function test_event_locations_restrict_new_entries_but_preserve_historical_entries(): void
+    {
+        $organization = $this->organization();
+        $allowed = $this->location($organization);
+        $other = Location::create(['organization_id' => $organization->id, 'name' => 'Other', 'slug' => 'other', 'is_active' => true]);
+        $event = $this->event($organization);
+        $event->locations()->attach($allowed);
+        $payload = $this->submission($other, ['special_event_id' => $event->id]);
+        $this->get(route('org.hours.index', ['org' => $organization, 'event' => $event->id]))
+            ->assertOk()->assertSee('data-location-ids="'.$allowed->id.'"', false);
+        $this->post(route('org.hours.store', $organization), $payload)->assertSessionHasErrors('location_id');
+        $this->post(route('org.hours.store', $organization), $this->submission($allowed, ['special_event_id' => $event->id]))->assertSessionHasNoErrors();
+
+        $historical = $this->entry($organization, $other, ['special_event_id' => $event->id]);
+        $this->actingAs($this->administrator($organization));
+        $this->post(route('admin.entries.store'), $payload)->assertSessionHasErrors('location_id');
+        $group = ['location_id' => $other->id, 'special_event_id' => $event->id, 'volunteered_at' => now()->toDateString(),
+            'rows' => [['name' => 'Alex', 'hours' => 1, 'minutes' => 0]]];
+        $this->post(route('admin.entries.group.store'), $group)->assertSessionHasErrors('location_id');
+        $this->put(route('admin.entries.update', $historical), $payload)->assertSessionHasNoErrors();
+        $event->locations()->detach();
+        $this->post(route('admin.entries.store'), $payload)->assertSessionHasNoErrors();
+    }
+
+    public function test_assigned_locations_cannot_be_removed_or_moved_and_soft_deleted_locations_do_not_make_events_unrestricted(): void
+    {
+        $organization = $this->organization();
+        $other = $this->organization('other');
+        $allowed = $this->location($organization);
+        $otherLocation = Location::create(['organization_id' => $organization->id, 'name' => 'Other', 'slug' => 'other', 'is_active' => true]);
+        $event = $this->event($organization);
+        $event->locations()->attach($allowed);
+        $this->actingAs($this->administrator());
+        $this->delete(route('admin.locations.destroy', $allowed))->assertSessionHas('error');
+        $this->put(route('admin.locations.update', $allowed), [
+            'organization_id' => $other->id, 'name' => $allowed->name, 'is_active' => 1,
+        ])->assertSessionHasErrors('organization_id');
+        $allowed->delete();
+        auth()->logout();
+        $this->post(route('org.hours.store', $organization), $this->submission($otherLocation, ['special_event_id' => $event->id]))
+            ->assertSessionHasErrors('location_id');
+    }
+
     public function test_every_entry_mutation_is_organization_authorized(): void
     {
         $organization = $this->organization();

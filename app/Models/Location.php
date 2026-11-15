@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -55,6 +56,11 @@ class Location extends Model
     public function volunteerEntries(): HasMany
     {
         return $this->hasMany(VolunteerEntry::class);
+    }
+
+    public function specialEvents(): BelongsToMany
+    {
+        return $this->belongsToMany(SpecialEvent::class);
     }
 
     // -------------------------------------------------------------------------

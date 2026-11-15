@@ -13,6 +13,7 @@
             hx-select="#form-container"
             hx-swap="outerHTML"
             hx-disabled-elt="find button[type='submit']"
+            data-event-locations
         >
             @csrf
             <input type="hidden" name="anon_token" value="{{ old('anon_token') }}" data-anon-token>
@@ -53,6 +54,7 @@
                     <div class="form-text" id="locationHelp">Choose where you volunteered</div>
                 @enderror
                 <div class="form-text" data-location-status role="status"></div>
+                <div class="form-text" data-event-location-status role="status"></div>
             </div>
 
             @if($events->isNotEmpty())
@@ -64,7 +66,7 @@
                         @if($groupEvents->isNotEmpty())
                             <optgroup label="{{ $group }}">
                             @foreach($groupEvents as $event)
-                                <option value="{{ $event->id }}" @selected(old('special_event_id', request('event')) == $event->id)>{{ $event->name }} &middot; {{ $event->starts_on->format('M j, Y') }}</option>
+                                <option value="{{ $event->id }}" @selected(old('special_event_id', request('event')) == $event->id) data-location-ids="{{ $event->locations->pluck('id')->join(',') }}">{{ $event->name }} &middot; {{ $event->starts_on->format('M j, Y') }}</option>
                             @endforeach
                             </optgroup>
                         @endif
