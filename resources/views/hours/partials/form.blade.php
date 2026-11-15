@@ -34,6 +34,8 @@
                     class="form-select @error('location_id') is-invalid @enderror"
                     required
                     aria-describedby="locationHelp"
+                    data-remember-location="{{ $org->id }}"
+                    data-restore-location="{{ session()->hasOldInput('location_id') ? 'false' : 'true' }}"
                 >
                     <option value="">Choose {{ strtolower($org->config->labelLocation) }}...</option>
                     @foreach($locations as $location)
@@ -50,6 +52,7 @@
                 @else
                     <div class="form-text" id="locationHelp">Choose where you volunteered</div>
                 @enderror
+                <div class="form-text" data-location-status role="status"></div>
             </div>
 
             @if($events->isNotEmpty())
@@ -57,8 +60,14 @@
                 <label for="special_event_id" class="form-label fw-semibold">Special event <span class="text-muted fw-normal">(optional)</span></label>
                 <select name="special_event_id" id="special_event_id" class="form-select @error('special_event_id') is-invalid @enderror" aria-describedby="event-help">
                     <option value="">Everyday volunteering / no event</option>
-                    @foreach($events as $event)
-                    <option value="{{ $event->id }}" @selected(old('special_event_id', request('event')) == $event->id)>{{ $event->name }} &middot; {{ $event->starts_on->format('M j, Y') }}</option>
+                    @foreach(['Recent and upcoming' => $events->filter(fn ($event) => ($event->ends_on ?? $event->starts_on)->gte(today()->subDays(30)))->sortBy('starts_on'), 'Earlier events' => $events->filter(fn ($event) => ($event->ends_on ?? $event->starts_on)->lt(today()->subDays(30)))->sortByDesc('starts_on')] as $group => $groupEvents)
+                        @if($groupEvents->isNotEmpty())
+                            <optgroup label="{{ $group }}">
+                            @foreach($groupEvents as $event)
+                                <option value="{{ $event->id }}" @selected(old('special_event_id', request('event')) == $event->id)>{{ $event->name }} &middot; {{ $event->starts_on->format('M j, Y') }}</option>
+                            @endforeach
+                            </optgroup>
+                        @endif
                     @endforeach
                 </select>
                 <div id="event-help" class="form-text">Taking part in an organized event? Select it here. Otherwise, leave this blank.</div>
@@ -89,30 +98,17 @@
             </div>
 
             <!-- Hours Field -->
-            <div class="mb-3">
-                <label for="hours" class="form-label fw-semibold">
-                    {{ $org->config->labelHours }} <span class="text-danger">*</span>
-                </label>
-                <input 
-                    type="number" 
-                    name="hours" 
-                    id="hours" 
-                    class="form-control @error('hours') is-invalid @enderror"
-                    value="{{ old('hours') }}"
-                    min="0.01"
-                    max="24"
-                    step="0.01"
-                    inputmode="decimal"
-                    placeholder="4.5"
-                    required
-                    @if($org->config->showHoursHint) aria-describedby="hoursHelp" @endif
-                >
-                @error('hours')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @elseif($org->config->showHoursHint)
-                    <div class="form-text" id="hoursHelp">Enter hours as a decimal (e.g., 2.5 for 2½ hours)</div>
-                @enderror
-            </div>
+            <fieldset class="mb-3">
+                <legend class="form-label fw-semibold">{{ $org->config->labelHours }} <span class="text-danger">*</span></legend>
+                <div class="row g-2">
+                    <div class="col-6"><label for="duration_hours" class="form-label">Hours</label><input type="number" name="duration_hours" id="duration_hours" class="form-control" min="0" max="24" step="1" inputmode="numeric" placeholder="0" value="{{ old('duration_hours') }}" @if($org->config->showHoursHint) aria-describedby="duration-help" @endif></div>
+                    <div class="col-6"><label for="duration_minutes" class="form-label">Minutes</label><input type="number" name="duration_minutes" id="duration_minutes" class="form-control" min="0" max="59" step="1" inputmode="numeric" placeholder="0" value="{{ old('duration_minutes') }}" @if($org->config->showHoursHint) aria-describedby="duration-help" @endif></div>
+                </div>
+                @if($org->config->showHoursHint)<div id="duration-help" class="form-text">Enter a total between 1 minute and 24 hours.</div>@endif
+                @error('hours')<div class="text-danger small">{{ $message }}</div>@enderror
+                @error('duration_hours')<div class="text-danger small">{{ $message }}</div>@enderror
+                @error('duration_minutes')<div class="text-danger small">{{ $message }}</div>@enderror
+            </fieldset>
 
             <!-- Name Field (Optional) -->
             <div class="mb-4">

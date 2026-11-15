@@ -39,6 +39,17 @@ class VolunteerHourController extends Controller
         abort_if(! $org->is_active, 404);
         $config = $org->config;
 
+        if ($request->has('duration_hours') || $request->has('duration_minutes')) {
+            $duration = $request->validate([
+                'duration_hours' => 'nullable|integer|min:0|max:24',
+                'duration_minutes' => 'nullable|integer|min:0|max:59',
+            ]);
+            $hasDuration = filled($duration['duration_hours'] ?? null) || filled($duration['duration_minutes'] ?? null);
+            $request->merge(['hours' => $hasDuration
+                ? round((int) ($duration['duration_hours'] ?? 0) + (int) ($duration['duration_minutes'] ?? 0) / 60, 2)
+                : null]);
+        }
+
         $rules = [
             'name'           => ($config->requireName ? 'required' : 'nullable') . '|string|max:255',
             'location_id'    => ['required', Rule::exists('locations', 'id')->where('organization_id', $org->id)->where('is_active', true)->whereNull('deleted_at')],

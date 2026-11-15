@@ -7,15 +7,17 @@
             </svg>
         </div>
         <h2 class="h3 mb-2">Thank You!</h2>
+        <p class="eyebrow">{{ $org->name }}</p>
         <p class="text-muted mb-4">{{ $org->config->successMessage }}</p>
 
         @if(isset($entry))
+            @php $durationMinutes = (int) round((float) $entry->hours * 60); @endphp
             <div class="d-inline-flex flex-wrap gap-3 justify-content-center bg-light rounded px-4 py-2 mb-4">
                 @if($entry->name)
                     <span><strong>{{ $entry->name }}</strong></span>
                     <span class="text-muted">•</span>
                 @endif
-                <span><strong>{{ number_format($entry->hours, 2) }}</strong> hours</span>
+                <span><strong>{{ intdiv($durationMinutes, 60) }} h {{ $durationMinutes % 60 }} min</strong></span>
                 <span class="text-muted">•</span>
                 <span>{{ $entry->volunteered_at->format('M j, Y') }}</span>
             </div>

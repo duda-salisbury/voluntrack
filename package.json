@@ -6,6 +6,9 @@
         "build": "vite build",
         "dev": "vite"
     },
+    "dependencies": {
+        "qrcode-generator": "^2.0.4"
+    },
     "devDependencies": {
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^3.0.0",

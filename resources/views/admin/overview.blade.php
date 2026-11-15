@@ -5,7 +5,7 @@
     @if($organization)
         <div class="page-heading">
             <div><p class="eyebrow">{{ $organization->name }} / Overview</p><h1>Welcome back, {{ Str::before(auth()->user()->name, ' ') }}.</h1><p class="text-muted mb-0">Here's how your community is showing up.</p></div>
-            <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" href="{{ route('admin.entries.create') }}">Add hours</a><a class="btn btn-outline-primary" href="#share-form">Share volunteer form</a></div>
+            <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" href="{{ route('admin.entries.create') }}">Add hours</a><a class="btn btn-outline-primary" href="{{ route('admin.entries.group') }}">Add group hours</a><a class="btn btn-outline-primary" href="#share-form">Share volunteer form</a></div>
         </div>
         <div class="section-heading"><div><p class="eyebrow mb-1">Your community</p><h2 class="h4">The last 30 days</h2><p class="small text-muted">Hours and submissions received in the last 30 days.</p></div><a href="{{ route('admin.reports') }}">Explore reports &rarr;</a></div>
         <div class="row g-3 mb-4">
@@ -13,17 +13,18 @@
             <div class="col-sm-6"><div class="card metric-card"><div class="card-body"><span class="text-muted small">Submissions received</span><div class="fs-2 fw-bold">{{ number_format($recentEntries) }}</div></div></div></div>
         </div>
         @if($locationCount === 0)
-            <section class="setup-notice mb-4"><div><p class="eyebrow mb-1">One step to get started</p><h2 class="h5">Add a place to volunteer</h2><p class="text-muted mb-0">Volunteers need an active location before they can submit hours.</p></div><a href="{{ route('admin.locations.create') }}" class="btn btn-primary">Add a location</a></section>
+            <section class="setup-notice mb-4"><div><p class="eyebrow mb-1">Getting ready</p><h2 class="h5">Prepare your volunteer form</h2><p class="text-muted mb-2">Add an active location before volunteers can submit hours.</p><div class="d-flex flex-wrap gap-3 small"><a href="{{ route('admin.special-events.create') }}">Create an optional event</a><a href="{{ route('admin.users.index') }}">Invite an administrator</a><a href="#share-form">Share your form</a></div></div><a href="{{ route('admin.locations.create') }}" class="btn btn-primary">Add a location</a></section>
         @endif
         <section id="share-form" class="share-panel mb-4">
             <p class="eyebrow">Your public form</p><h2 class="h4">Make it easy to show up.</h2><p class="text-muted">Share this link anywhere your volunteers gather. No account required.</p>
             <label class="visually-hidden" for="public-url">Public logging URL</label><div class="d-flex flex-wrap gap-2"><input id="public-url" class="form-control share-url" readonly value="{{ route('org.hours.index', $organization) }}"><button class="btn btn-primary" data-copy-target="public-url" type="button">Copy link</button><a class="btn btn-outline-secondary" href="{{ route('org.hours.index', $organization) }}" target="_blank" rel="noopener">Preview form</a></div><p class="small mt-2 mb-0" data-copy-status role="status"></p>
+            <details class="share-qr mt-3" data-qr-source="public-url"><summary class="fw-semibold">Show QR code</summary><p class="small text-muted mt-2">Scan to open your volunteer form. Generated in your browser.</p><div data-qr-image role="img" aria-label="QR code for the volunteer logging form"></div><p class="small text-muted" data-qr-status role="status"></p><noscript>Enable JavaScript to display the QR code, or share the link above.</noscript></details>
         </section>
         <section class="mb-4"><div class="section-heading"><h2 class="h4">Your workspace</h2></div>
             <div class="quick-links">
                 <a href="{{ route('admin.locations.index') }}"><strong>Locations</strong><span>Manage places to volunteer &rarr;</span></a>
                 <a href="{{ route('admin.special-events.index') }}"><strong>Special events</strong><span>Bring your community together &rarr;</span></a>
-                <a href="{{ route('admin.users.index') }}"><strong>Volunteers & access</strong><span>Find registered people &rarr;</span></a>
+                <a href="{{ route('admin.volunteer-activity') }}"><strong>Volunteer activity</strong><span>Explore contributions &rarr;</span></a>
                 <a href="{{ route('admin.reports') }}"><strong>Reports</strong><span>Explore your impact &rarr;</span></a>
             </div>
         </section>

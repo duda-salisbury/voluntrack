@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DashboardController extends Controller
 {
@@ -76,6 +77,46 @@ class DashboardController extends Controller
         return view('admin.reports', compact('stats', 'byLocation', 'byEvent', 'byMonth', 'recent') + $this->filterOptions($request));
     }
 
+    public function volunteerActivity(Request $request): View
+    {
+        $query = $this->filteredQuery($request);
+        $accounts = (clone $query)->whereNotNull('volunteer_user_id')
+            ->selectRaw('volunteer_user_id, SUM(hours) as total, COUNT(*) as submissions, MAX(volunteered_at) as last_worked')
+            ->groupBy('volunteer_user_id')
+            ->with(['volunteerUser' => fn ($q) => $q->when(auth()->user()->organization_id !== null, fn ($q) => $q->where('organization_id', auth()->user()->organization_id))])
+            ->orderByDesc('total')
+            ->paginate(20)->withQueryString();
+        $unlinked = (clone $query)->whereNull('volunteer_user_id')->count();
+
+        return view('admin.volunteer-activity', compact('accounts', 'unlinked') + $this->filterOptions($request));
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $query = $this->filteredQuery($request)->with(['organization', 'location', 'specialEvent']);
+
+        return response()->streamDownload(function () use ($query) {
+            $output = fopen('php://output', 'w');
+            fputcsv($output, ['Organization', 'Volunteer', 'Work date', 'Location', 'Special event', 'Hours', 'Matching', 'Source', 'Notes'], ',', '"', '');
+            foreach ($query->lazyById(200) as $entry) {
+                $row = [
+                    $entry->organization?->name ?? 'Unavailable',
+                    $entry->name ?? 'Anonymous',
+                    $entry->volunteered_at->format('Y-m-d'),
+                    $entry->location?->name ?? 'Unavailable',
+                    $entry->specialEvent?->name ?? '',
+                    number_format((float) $entry->hours, 2, '.', ''),
+                    $entry->is_matched ? 'Yes' : 'No',
+                    $entry->source ?? '',
+                    $entry->notes ?? '',
+                ];
+                $row = array_map(fn ($value) => preg_match('/^(?:[\\t\\r\\n]|[\\s\\x00-\\x1f]*[=+\\-@])/u', $value) ? "'".$value : $value, $row);
+                fputcsv($output, $row, ',', '"', '');
+            }
+            fclose($output);
+        }, 'voluntrack-contributions-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
     private function filteredQuery(Request $request): Builder
     {
         $orgId = auth()->user()->organization_id;
@@ -88,6 +129,7 @@ class DashboardController extends Controller
             'source' => 'nullable|string|max:50',
             'matched' => ['nullable', Rule::in(['yes', 'no'])],
             'event_status' => ['nullable', Rule::in(['event', 'ordinary'])],
+            'date_preset' => ['nullable', Rule::in(['last30', 'this_month', 'last_month', 'this_year', 'custom'])],
             'date_from' => 'nullable|date',
             'date_to' => ['nullable', 'date', ...($request->filled('date_from') ? ['after_or_equal:date_from'] : [])],
         ]);
@@ -104,11 +146,18 @@ class DashboardController extends Controller
         if ($request->filled('volunteer')) {
             $query->where('name', 'like', '%'.$request->input('volunteer').'%');
         }
-        if ($request->filled('date_from')) {
-            $query->whereDate('volunteered_at', '>=', $request->input('date_from'));
+        [$dateFrom, $dateTo] = match ($request->input('date_preset')) {
+            'last30' => [today()->subDays(29)->toDateString(), today()->toDateString()],
+            'this_month' => [today()->startOfMonth()->toDateString(), today()->endOfMonth()->toDateString()],
+            'last_month' => [today()->subMonthNoOverflow()->startOfMonth()->toDateString(), today()->subMonthNoOverflow()->endOfMonth()->toDateString()],
+            'this_year' => [today()->startOfYear()->toDateString(), today()->endOfYear()->toDateString()],
+            default => [$request->input('date_from'), $request->input('date_to')],
+        };
+        if ($dateFrom) {
+            $query->whereDate('volunteered_at', '>=', $dateFrom);
         }
-        if ($request->filled('date_to')) {
-            $query->whereDate('volunteered_at', '<=', $request->input('date_to'));
+        if ($dateTo) {
+            $query->whereDate('volunteered_at', '<=', $dateTo);
         }
         if ($request->filled('matched')) {
             $query->where('is_matched', $request->input('matched') === 'yes');

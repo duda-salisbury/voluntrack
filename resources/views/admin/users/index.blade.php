@@ -1,13 +1,13 @@
 @extends('layouts.admin')
 
-@section('title', 'Users')
+@section('title', 'Accounts & access')
 
 @section('content')
 <div class="container-fluid" style="max-width: 1100px;">
 
     <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
         <div>
-            <h1 class="h3 mb-1">{{ auth()->user()->isSuperAdmin() ? 'People & access' : 'Volunteers & access' }}</h1>
+            <h1 class="h3 mb-1">{{ auth()->user()->isSuperAdmin() ? 'People & access' : 'Accounts & access' }}</h1>
             <p class="text-muted mb-0">
                 @if(auth()->user()->isSuperAdmin())
                     All users across all organizations.
@@ -15,10 +15,22 @@
                     Registered volunteers and administrators in {{ $org->name ?? 'your organization' }}.
                 @endif
             </p>
-            <p class="small text-muted mb-0 mt-1">Named and anonymous volunteers do not need an account. Find their contributions in <a href="{{ route('admin.dashboard') }}">Volunteer hours</a>.</p>
+            <p class="small text-muted mb-0 mt-1">Named and anonymous volunteers do not need an account. Explore contributions in <a href="{{ route('admin.volunteer-activity') }}">Volunteer activity</a>.</p>
         </div>
         <a href="{{ route('admin.users.create') }}" class="btn btn-primary">+ New User</a>
     </div>
+
+    @unless(auth()->user()->isSuperAdmin())
+    <details class="card mb-4"><summary class="p-3 fw-semibold">Invite another administrator</summary><div class="card-body border-top">
+        <p class="text-muted small">Invite a new administrator by email. For existing accounts or another invitation, contact a platform administrator.</p>
+        <form method="POST" action="{{ route('admin.organizations.administrators', $org) }}" class="row g-3">
+            @csrf
+            <div class="col-md-4"><label class="form-label" for="invite-name">Name</label><input id="invite-name" class="form-control" name="name" value="{{ old('name') }}" maxlength="255" required></div>
+            <div class="col-md-5"><label class="form-label" for="invite-email">Email</label><input id="invite-email" class="form-control" type="email" name="email" value="{{ old('email') }}" maxlength="255" required></div>
+            <div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary">Send invitation</button></div>
+        </form>
+    </div></details>
+    @endunless
 
     {{-- Filters --}}
     <div class="card mb-4">

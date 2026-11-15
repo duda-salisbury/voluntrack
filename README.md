@@ -121,11 +121,11 @@ set `MAIL_MAILER=log` to avoid sending real messages.
 5. **Create an optional event.** Open **Special events**, create `Fall Trail
    Cleanup 2026`, enter its date or date range, and leave it available on the
    public form. Its overview includes a preselected-event logging link.
-6. **Share the form.** Copy the public link from **Overview** or **Settings**:
+6. **Share the form.** Copy the public link or display its QR code from **Overview**:
    `/qcnemba/log-hours`. Existing `/qcnemba` bookmarks continue to
    work. Event links use `/qcnemba/log-hours?event=EVENT_ID`.
 7. **Submit without an account.** Open the link in a private browser, choose the
-   forest, enter four hours and a non-future work date, and optionally select the
+   forest, enter hours and minutes and a non-future work date, and optionally select the
    event. Leave the name blank for anonymous logging. The confirmation shows the
    recorded details and offers **Log Another Entry**.
 8. **Submit ordinary hours.** Log another two hours with **Everyday volunteering /
@@ -152,7 +152,15 @@ set `MAIL_MAILER=log` to avoid sending real messages.
   users are directed to their workspace or volunteer history when available.
 - Overview activity counts submissions received in the last 30 days; reports
   remain independently filterable. Organization administrators can manage
-  volunteer accounts and their own account, but not other administrators.
+  volunteer accounts and their own account, but not other administrators. They
+  can invite new administrators; only platform administrators can manage or
+  resend invitations to existing administrator accounts.
+- Group entry saves up to 50 ordinary contributions together in a transaction.
+  Names do not create or link accounts. Volunteer activity groups only
+  account-linked records; unlinked contributions remain individual records.
+- Report date presets and filters also apply to the streamed CSV export.
+  Spreadsheet formula-like values are escaped. Durations are stored in decimal
+  hours rounded to two places, including hours-and-minutes submissions.
 - Events retain their historical entries when deactivated. Event dates describe
   the event; they do not prevent later entry of historical hours. Public entry
   dates cannot be in the future.
@@ -171,9 +179,10 @@ set `MAIL_MAILER=log` to avoid sending real messages.
   memberships, organization switching, and cross-organization account joining
   require a future membership model. This change does not silently move people
   between organizations or introduce an incomplete membership system.
-- Copyable links and previews are provided. QR generation is intentionally
-  deferred rather than sending organization URLs to an external QR service or
-  adding a dependency for an optional feature.
+- Public-link QR codes are generated locally in the browser with the small
+  `qrcode-generator` dependency; organization URLs are not sent to a QR service.
+- Volunteer corrections remain administrator-managed; no automatic changes to
+  historical records or correction approval workflow have been introduced.
 - Bootstrap and HTMX retain their existing CDN loading. New application styles,
   copy controls, and continuity behavior are built locally by Vite.
 

@@ -11,10 +11,65 @@ use App\Models\VolunteerEntry;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class EntryController extends Controller
 {
+    public function createGroup(): View
+    {
+        $orgId = auth()->user()->organization_id;
+        abort_if($orgId === null, 403, 'Group entry is available in an organization workspace.');
+        $locations = Location::where('organization_id', $orgId)->orderBy('name')->get();
+        $events = SpecialEvent::where('organization_id', $orgId)->orderByDesc('starts_on')->get();
+
+        return view('admin.entries.group', compact('locations', 'events'));
+    }
+
+    public function storeGroup(Request $request): RedirectResponse
+    {
+        $orgId = auth()->user()->organization_id;
+        abort_if($orgId === null, 403, 'Group entry is available in an organization workspace.');
+        $validator = Validator::make($request->all(), [
+            'location_id' => ['required', Rule::exists('locations', 'id')->where('organization_id', $orgId)->whereNull('deleted_at')],
+            'special_event_id' => ['nullable', Rule::exists('special_events', 'id')->where('organization_id', $orgId)],
+            'volunteered_at' => 'required|date',
+            'rows' => 'required|array|min:1|max:50',
+            'rows.*.name' => 'required|string|max:255',
+            'rows.*.hours' => 'nullable|integer|min:0|max:24',
+            'rows.*.minutes' => 'nullable|integer|min:0|max:59',
+        ]);
+        $validator->after(function ($validator) use ($request) {
+            if ($validator->errors()->isNotEmpty() || ! is_array($request->input('rows'))) {
+                return;
+            }
+            foreach ($request->input('rows') as $index => $row) {
+                $minutes = (int) ($row['hours'] ?? 0) * 60 + (int) ($row['minutes'] ?? 0);
+                if ($minutes < 1 || $minutes > 1440) {
+                    $validator->errors()->add("rows.$index.hours", 'Each duration must be between 1 minute and 24 hours.');
+                }
+            }
+        });
+        $data = $validator->validate();
+
+        DB::transaction(function () use ($data, $orgId) {
+            foreach ($data['rows'] as $row) {
+                VolunteerEntry::create([
+                    'organization_id' => $orgId,
+                    'location_id' => $data['location_id'],
+                    'special_event_id' => $data['special_event_id'] ?? null,
+                    'volunteered_at' => $data['volunteered_at'],
+                    'name' => $row['name'],
+                    'hours' => round((int) ($row['hours'] ?? 0) + (int) ($row['minutes'] ?? 0) / 60, 2),
+                    'source' => 'admin',
+                ]);
+            }
+        });
+
+        return redirect()->route('admin.dashboard')->with('success', count($data['rows']).' contributions recorded.');
+    }
+
     private function authorizeEntry(VolunteerEntry $entry): void
     {
         $user = auth()->user();

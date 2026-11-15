@@ -32,13 +32,17 @@ class OrganizationController extends Controller
 
     public function inviteAdministrator(Request $request, Organization $organization): RedirectResponse
     {
-        $this->requireSuperAdmin();
+        $actor = $request->user();
+        abort_unless($actor->isSuperAdmin() || $actor->organization_id === $organization->id, 403);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
         ]);
         $user = User::withTrashed()->where('email', $validated['email'])->first();
 
+        if ($user && ! $actor->isSuperAdmin()) {
+            return back()->withErrors(['email' => 'Only platform administrators can manage or resend invitations to existing accounts.'])->withInput();
+        }
         if ($user && ($user->trashed()
             || ($user->organization_id !== null && $user->organization_id !== $organization->id)
             || ($user->is_admin && $user->organization_id === null))) {
@@ -65,7 +69,7 @@ class OrganizationController extends Controller
             return back()->withErrors(['email' => __($status)])->withInput();
         }
 
-        return redirect()->route('admin.organizations.show', $organization)
+        return redirect()->route($actor->isSuperAdmin() ? 'admin.organizations.show' : 'admin.users.index', $actor->isSuperAdmin() ? $organization : [])
             ->with('success', "Administrator assigned. A secure password link was sent to {$user->email}.");
     }
 

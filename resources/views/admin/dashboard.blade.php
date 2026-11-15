@@ -4,7 +4,7 @@
 <div class="container-fluid workspace" id="hours-workspace">
     <div class="page-heading">
         <div><p class="eyebrow">{{ $org?->name ?? 'All organizations' }} / Contributions</p><h1>Volunteer hours</h1><p class="text-muted mb-0">Every contribution, in one place. Filter, review, and keep the details accurate.</p></div>
-        <a href="{{ route('admin.entries.create') }}" class="btn btn-primary">Add hours</a>
+        <div class="d-flex flex-wrap gap-2">@unless(auth()->user()->isSuperAdmin())<a href="{{ route('admin.entries.group') }}" class="btn btn-outline-primary">Add group hours</a>@endunless<a href="{{ route('admin.entries.create') }}" class="btn btn-primary">Add hours</a></div>
     </div>
     <div class="row g-3 mb-4" id="stats-cards"
          hx-get="{{ route('admin.stats', request()->query()) }}" hx-trigger="statsUpdated from:body" hx-swap="innerHTML">

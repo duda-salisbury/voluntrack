@@ -38,8 +38,12 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::get('/overview', [DashboardController::class, 'overview'])->name('overview');
     Route::get('/stats', [DashboardController::class, 'stats'])->name('stats');
     Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
+    Route::get('/reports/export', [DashboardController::class, 'export'])->name('reports.export');
+    Route::get('/volunteer-activity', [DashboardController::class, 'volunteerActivity'])->name('volunteer-activity');
 
     // Entries
+    Route::get('entries/group', [EntryController::class, 'createGroup'])->name('entries.group');
+    Route::post('entries/group', [EntryController::class, 'storeGroup'])->name('entries.group.store');
     Route::resource('entries', EntryController::class)->except(['index', 'show']);
     Route::post('entries/{entry}/toggle-match',  [EntryController::class, 'toggleMatch'])->name('entries.toggle-match');
     Route::post('entries/{entry}/update-notes',  [EntryController::class, 'updateNotes'])->name('entries.update-notes');

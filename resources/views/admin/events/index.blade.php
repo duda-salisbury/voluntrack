@@ -11,7 +11,7 @@
         <div class="col-md-6 col-xl-4"><article class="card h-100"><div class="card-body d-flex flex-column">
             <div class="d-flex justify-content-between gap-2 mb-3">
                 <span class="eyebrow mb-0">{{ $event->starts_on->format('M j, Y') }}@if($event->ends_on) &ndash; {{ $event->ends_on->format('M j, Y') }}@endif</span>
-                <span class="badge {{ $event->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $event->is_active ? 'Active' : 'Inactive' }}</span>
+                <span class="text-end"><span class="badge bg-primary-subtle text-primary">{{ $event->scheduleStatus() }}</span> <span class="badge {{ $event->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $event->is_active ? 'Open for logging' : 'Closed for logging' }}</span></span>
             </div>
             <h2 class="h4"><a href="{{ route('admin.special-events.show', $event) }}">{{ $event->name }}</a></h2>
             @if(auth()->user()->isSuperAdmin())<p class="small text-muted">{{ $event->organization?->name ?? 'Archived organization' }}</p>@endif

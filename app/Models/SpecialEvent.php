@@ -27,4 +27,13 @@ class SpecialEvent extends Model
     {
         return $this->hasMany(VolunteerEntry::class);
     }
+
+    public function scheduleStatus(): string
+    {
+        if ($this->starts_on->isAfter(today())) {
+            return 'Upcoming';
+        }
+
+        return ($this->ends_on ?? $this->starts_on)->isBefore(today()) ? 'Completed' : 'Current';
+    }
 }

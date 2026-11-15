@@ -23,7 +23,8 @@
         ['admin.dashboard', 'Volunteer hours', 'admin.dashboard,admin.entries.*'],
         ['admin.locations.index', 'Locations', 'admin.locations.*'],
         ['admin.special-events.index', 'Special events', 'admin.special-events.*'],
-        ['admin.users.index', 'Volunteers & access', 'admin.users.*'],
+        ['admin.volunteer-activity', 'Volunteer activity', 'admin.volunteer-activity'],
+        ['admin.users.index', 'Accounts & access', 'admin.users.*'],
         ['admin.reports', 'Reports', 'admin.reports'],
         ['admin.branding.edit', 'Settings', 'admin.branding.*'],
     ];

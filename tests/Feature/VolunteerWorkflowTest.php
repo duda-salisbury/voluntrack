@@ -207,7 +207,7 @@ class VolunteerWorkflowTest extends TestCase
         auth()->logout();
         $this->get(route('org.hours.index', $organization))->assertOk()
             ->assertSee('Give back outdoors')->assertSee('Record my contribution')->assertSee('Forest')
-            ->assertDontSee('name="notes"', false)->assertDontSee('Enter hours as a decimal');
+            ->assertDontSee('name="notes"', false)->assertDontSee('Enter a total between 1 minute and 24 hours.');
         $this->assertFalse($organization->fresh()->config->showHoursHint);
         $this->followingRedirects()->post(route('org.hours.store', $organization), $this->submission($location))
             ->assertOk()->assertSee('Our trails thank you!');
@@ -449,7 +449,7 @@ class VolunteerWorkflowTest extends TestCase
         $organization = $this->organization();
         $organization->update(['settings' => ['form' => ['require_name' => true, 'show_notes' => true]]]);
         $location = $this->location($organization);
-        $this->get(route('org.hours.index', $organization))->assertOk()->assertSee('name="notes"', false)->assertSee('Enter hours as a decimal');
+        $this->get(route('org.hours.index', $organization))->assertOk()->assertSee('name="notes"', false)->assertSee('Enter a total between 1 minute and 24 hours.');
         $this->post(route('org.hours.store', $organization), $this->submission($location))->assertSessionHasErrors('name');
         $this->post(route('org.hours.store', $organization), $this->submission($location, [
             'name' => 'Trail volunteer', 'notes' => 'Cleared fallen branches.',
@@ -617,5 +617,91 @@ class VolunteerWorkflowTest extends TestCase
         $this->actingAs($this->administrator())->get(route('admin.overview'))
             ->assertOk()->assertViewHas('platformStats', fn ($stats) => $stats['organizations'] === 2 && $stats['without_admins'] === 1)
             ->assertSee($other->name);
+    }
+
+    public function test_public_duration_in_hours_and_minutes_is_validated_and_stored_as_decimal(): void
+    {
+        $organization = $this->organization();
+        $location = $this->location($organization);
+        $payload = ['location_id' => $location->id, 'volunteered_at' => now()->toDateString(), 'duration_hours' => 2, 'duration_minutes' => 30];
+        $this->post(route('org.hours.store', $organization), $payload)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('volunteer_entries', ['organization_id' => $organization->id, 'hours' => 2.5]);
+        $payload['duration_hours'] = 24;
+        $payload['duration_minutes'] = 1;
+        $this->post(route('org.hours.store', $organization), $payload)->assertSessionHasErrors('hours');
+        $payload['duration_hours'] = 0;
+        $payload['duration_minutes'] = 0;
+        $this->post(route('org.hours.store', $organization), $payload)->assertSessionHasErrors('hours');
+    }
+
+    public function test_group_entry_is_atomic_and_organization_scoped(): void
+    {
+        $organization = $this->organization();
+        $other = $this->organization('other');
+        $location = $this->location($organization);
+        $event = $this->event($organization);
+        $payload = ['location_id' => $location->id, 'special_event_id' => $event->id, 'volunteered_at' => now()->toDateString(),
+            'rows' => [['name' => 'Alex', 'hours' => 2, 'minutes' => 30], ['name' => 'Alex', 'hours' => 0, 'minutes' => 45]]];
+        $this->actingAs($this->administrator($organization));
+        $this->get(route('admin.entries.group'))->assertOk();
+        $invalid = $payload;
+        $invalid['rows'][1]['minutes'] = 60;
+        $this->post(route('admin.entries.group.store'), $invalid)->assertSessionHasErrors('rows.1.minutes');
+        $this->assertDatabaseCount('volunteer_entries', 0);
+        $invalid = $payload;
+        $invalid['location_id'] = $this->location($other)->id;
+        $this->post(route('admin.entries.group.store'), $invalid)->assertSessionHasErrors('location_id');
+        $this->assertDatabaseCount('volunteer_entries', 0);
+        $this->post(route('admin.entries.group.store'), $payload)->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('volunteer_entries', 2);
+        $this->assertDatabaseHas('volunteer_entries', ['organization_id' => $organization->id, 'name' => 'Alex', 'hours' => 2.5, 'special_event_id' => $event->id, 'volunteer_user_id' => null]);
+        $this->assertDatabaseHas('volunteer_entries', ['organization_id' => $organization->id, 'name' => 'Alex', 'hours' => 0.75, 'volunteer_user_id' => null]);
+    }
+
+    public function test_csv_export_uses_filters_scoping_and_escapes_spreadsheet_formulas(): void
+    {
+        $organization = $this->organization();
+        $other = $this->organization('other');
+        $location = $this->location($organization);
+        $this->entry($organization, $location, ['name' => '=HYPERLINK("bad")', 'notes' => '  +danger', 'is_matched' => true, 'volunteered_at' => now()->toDateString()]);
+        $this->entry($organization, $location, ['name' => 'Not matched', 'volunteered_at' => now()->toDateString()]);
+        $this->entry($other, $this->location($other), ['name' => 'Private foreign record', 'is_matched' => true, 'volunteered_at' => now()->toDateString()]);
+        $this->actingAs($this->administrator($organization));
+        $response = $this->get(route('admin.reports.export', ['date_preset' => 'last30', 'matched' => 'yes']));
+        $response->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $csv = $response->streamedContent();
+        $this->assertStringContainsString("'=HYPERLINK", $csv);
+        $this->assertStringContainsString("'  +danger", $csv);
+        $this->assertStringNotContainsString('Private foreign record', $csv);
+        $this->assertStringNotContainsString('Not matched', $csv);
+        $this->get(route('admin.reports', ['date_preset' => 'last30', 'matched' => 'yes']))
+            ->assertOk()->assertViewHas('stats', fn ($stats) => $stats['total_entries'] === 1);
+    }
+
+    public function test_volunteer_activity_only_groups_account_linked_contributions(): void
+    {
+        $organization = $this->organization();
+        $location = $this->location($organization);
+        $first = User::factory()->create(['name' => 'Same Name', 'is_admin' => false, 'organization_id' => $organization->id]);
+        $second = User::factory()->create(['name' => 'Same Name', 'is_admin' => false, 'organization_id' => $organization->id]);
+        $this->entry($organization, $location, ['name' => 'Same Name', 'volunteer_user_id' => $first->id]);
+        $this->entry($organization, $location, ['name' => 'Same Name', 'volunteer_user_id' => $second->id]);
+        $this->entry($organization, $location, ['name' => 'Same Name']);
+        $this->actingAs($this->administrator($organization))->get(route('admin.volunteer-activity'))
+            ->assertOk()->assertViewHas('unlinked', 1)->assertViewHas('accounts', fn ($accounts) => $accounts->total() === 2);
+    }
+
+    public function test_org_admin_can_invite_new_admin_but_not_reset_existing_admin(): void
+    {
+        Notification::fake();
+        $organization = $this->organization();
+        $otherAdmin = $this->administrator($organization);
+        $this->actingAs($this->administrator($organization));
+        $this->post(route('admin.organizations.administrators', $organization), ['name' => 'New Admin', 'email' => 'new-admin@example.test'])
+            ->assertSessionHasNoErrors()->assertRedirect(route('admin.users.index'));
+        Notification::assertSentTo(User::where('email', 'new-admin@example.test')->firstOrFail(), AdministratorInvitation::class);
+        $this->post(route('admin.organizations.administrators', $organization), ['name' => $otherAdmin->name, 'email' => $otherAdmin->email])
+            ->assertSessionHasErrors('email');
+        Notification::assertNotSentTo($otherAdmin, AdministratorInvitation::class);
     }
 }
